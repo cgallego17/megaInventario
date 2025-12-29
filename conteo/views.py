@@ -176,7 +176,8 @@ def detalle_conteo(request, pk):
         'productos_asignados': productos_asignados,
         'productos_contados': productos_contados,
         'productos_no_contados': productos_no_contados,
-        'productos_contados_ids': productos_contados_ids,
+        'productos_contados_ids': productos_contados_ids_pareja,
+        'productos_contados_ids_todos': productos_contados_ids_todos,
         'es_admin': es_admin,
     })
 
