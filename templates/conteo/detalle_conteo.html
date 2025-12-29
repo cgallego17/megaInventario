@@ -137,12 +137,24 @@
         }
     }
     
-    #video {
+    #interactive {
         width: 100%;
-        max-width: 100%;
-        height: auto;
-        border: 2px solid #007bff;
+        height: 0;
+        padding-bottom: 75%;
+        position: relative;
+        background: #000;
         border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    #interactive canvas,
+    #interactive video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
     
     #scanner-container {
@@ -161,6 +173,7 @@
         border: 3px solid #28a745;
         border-radius: 8px;
         pointer-events: none;
+        z-index: 10;
     }
     
     .scanner-overlay::before {
@@ -811,8 +824,10 @@
                     
                     <!-- Scanner colapsable -->
                     <div id="scanner-container-wrapper" style="display: none;">
-                        <div id="scanner-container" class="mb-2">
-                            <video id="video" autoplay playsinline></video>
+                        <div id="scanner-container" class="mb-2" style="position: relative; width: 100%;">
+                            <div id="interactive" style="width: 100%; height: 0; padding-bottom: 75%; position: relative; background: #000; border-radius: 8px; overflow: hidden;">
+                                <!-- Quagga renderizará aquí -->
+                            </div>
                             <div class="scanner-overlay"></div>
                         </div>
                         <div class="d-grid gap-2">
@@ -932,24 +947,21 @@
     function toggleScanner() {
         const wrapper = document.getElementById('scanner-container-wrapper');
         const icon = document.getElementById('scanner-toggle-icon');
-        const btn = document.getElementById('toggle-scanner-btn');
+        const toggleText = document.getElementById('scanner-toggle-text');
         
-        if (wrapper.style.display === 'none') {
+        if (wrapper.style.display === 'none' || wrapper.style.display === '') {
             wrapper.style.display = 'block';
             icon.classList.remove('bi-chevron-down');
             icon.classList.add('bi-chevron-up');
-            if (btn) btn.innerHTML = '<i class="bi bi-camera"></i> Ocultar Scanner';
+            if (toggleText) toggleText.textContent = 'Ocultar Scanner';
         } else {
             wrapper.style.display = 'none';
             icon.classList.remove('bi-chevron-up');
             icon.classList.add('bi-chevron-down');
-            if (btn) btn.innerHTML = '<i class="bi bi-camera"></i> Mostrar Scanner';
+            if (toggleText) toggleText.textContent = 'Mostrar Scanner';
             // Detener cámara si está activa
-            if (scanning && Quagga) {
-                Quagga.stop();
-                scanning = false;
-                startBtn.style.display = 'block';
-                stopBtn.style.display = 'none';
+            if (typeof detenerScanner === 'function') {
+                detenerScanner();
             }
         }
     }
@@ -958,8 +970,10 @@
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 <script>
     let scanning = false;
+    let lastScannedCode = null;
+    let lastScanTime = 0;
 
-    const video = document.getElementById('video');
+    const interactive = document.getElementById('interactive');
     const startBtn = document.getElementById('start-camera');
     const stopBtn = document.getElementById('stop-camera');
     const codigoManual = document.getElementById('codigo-manual');
@@ -967,19 +981,54 @@
     const agregarManualBtn = document.getElementById('agregar-manual');
     const mensajeResultado = document.getElementById('mensaje-resultado');
 
+    // Verificar si Quagga está disponible
+    function verificarQuagga() {
+        if (typeof Quagga === 'undefined') {
+            console.error('Quagga no está cargado');
+            mostrarMensaje('Error: La librería de escaneo no se cargó correctamente. Recarga la página.', 'danger');
+            return false;
+        }
+        return true;
+    }
+
     // Activar cámara
     startBtn.addEventListener('click', () => {
+        if (!verificarQuagga()) return;
+        
+        // Detener scanner anterior si existe
+        if (scanning) {
+            detenerScanner();
+        }
+        
+        iniciarQuagga();
+    });
+
+    function iniciarQuagga() {
+        if (!verificarQuagga()) return;
+        
         Quagga.init({
             inputStream: {
                 name: "Live",
                 type: "LiveStream",
-                target: video,
+                target: interactive,
                 constraints: {
-                    width: 640,
-                    height: 480,
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 },
                     facingMode: "environment"
+                },
+                area: { // Área de escaneo (porcentajes)
+                    top: "20%",
+                    right: "20%",
+                    left: "20%",
+                    bottom: "20%"
                 }
             },
+            locator: {
+                patchSize: "medium",
+                halfSample: true
+            },
+            numOfWorkers: 2,
+            frequency: 10,
             decoder: {
                 readers: [
                     "code_128_reader",
@@ -991,41 +1040,101 @@
                     "upc_reader",
                     "upc_e_reader",
                     "i2of5_reader"
-                ]
+                ],
+                debug: {
+                    drawBoundingBox: true,
+                    showFrequency: false,
+                    drawScanline: true,
+                    showPattern: false
+                }
             },
             locate: true
         }, (err) => {
             if (err) {
                 console.error('Error inicializando Quagga:', err);
-                mostrarMensaje('Error al inicializar el scanner. Usa entrada manual.', 'warning');
+                let mensaje = 'Error al inicializar el scanner. ';
+                if (err.message && err.message.includes('camera')) {
+                    mensaje += 'Verifica que la cámara esté disponible y que hayas dado permisos.';
+                } else {
+                    mensaje += 'Usa entrada manual.';
+                }
+                mostrarMensaje(mensaje, 'warning');
+                detenerScanner();
                 return;
             }
+            
             Quagga.start();
             startBtn.style.display = 'none';
             stopBtn.style.display = 'block';
             scanning = true;
+            mostrarMensaje('Scanner activado. Apunta el código de barras a la cámara.', 'success');
         });
 
+        // Detectar códigos
         Quagga.onDetected((data) => {
-            if (scanning) {
-                const codigo = data.codeResult.code;
-                codigoManual.value = codigo;
-                const cantidad = parseInt(cantidadInput.value) || 0;
-                if (cantidad >= 0) {
-                    agregarProducto(codigo, cantidad);
-                }
+            if (!scanning) return;
+            
+            const codigo = data.codeResult.code;
+            const ahora = Date.now();
+            
+            // Evitar escaneos duplicados (mismo código en menos de 2 segundos)
+            if (codigo === lastScannedCode && (ahora - lastScanTime) < 2000) {
+                return;
             }
+            
+            lastScannedCode = codigo;
+            lastScanTime = ahora;
+            
+            // Detener scanner temporalmente para evitar múltiples escaneos
+            scanning = false;
+            Quagga.stop();
+            
+            // Llenar el campo y agregar producto
+            codigoManual.value = codigo;
+            const cantidad = parseInt(cantidadInput.value) || 0;
+            
+            mostrarMensaje(`Código escaneado: ${codigo}`, 'success');
+            
+            if (cantidad >= 0) {
+                agregarProducto(codigo, cantidad);
+            }
+            
+            // Reiniciar scanner después de 1.5 segundos
+            setTimeout(() => {
+                if (stopBtn.style.display !== 'none') {
+                    Quagga.start();
+                    scanning = true;
+                }
+            }, 1500);
         });
-    });
+    }
+
+    function detenerScanner() {
+        scanning = false;
+        
+        if (typeof Quagga !== 'undefined') {
+            try {
+                if (Quagga.initialized) {
+                    Quagga.stop();
+                }
+            } catch (e) {
+                console.error('Error deteniendo Quagga:', e);
+            }
+        }
+        
+        startBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
+    }
 
     // Desactivar cámara
     stopBtn.addEventListener('click', () => {
-        scanning = false;
-        if (Quagga) {
-            Quagga.stop();
-        }
-        startBtn.style.display = 'block';
-        stopBtn.style.display = 'none';
+        detenerScanner();
+        mostrarMensaje('Scanner desactivado.', 'info');
+    });
+    
+    // Limpiar al salir de la página
+    window.addEventListener('beforeunload', () => {
+        detenerScanner();
     });
 
     // Búsqueda de productos mientras se escribe
