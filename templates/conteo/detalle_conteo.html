@@ -981,6 +981,46 @@
     const agregarManualBtn = document.getElementById('agregar-manual');
     const mensajeResultado = document.getElementById('mensaje-resultado');
 
+    // Función para reproducir sonido de escaneo exitoso
+    function reproducirSonidoEscaneo() {
+        try {
+            // Crear contexto de audio
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Frecuencia y duración del beep
+            const frecuencia = 800; // Hz (tono medio-alto)
+            const duracion = 150; // milisegundos
+            const volumen = 0.3; // 30% de volumen
+            
+            // Crear oscilador
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            // Conectar nodos
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Configurar oscilador
+            oscillator.frequency.value = frecuencia;
+            oscillator.type = 'sine'; // Tipo de onda suave
+            
+            // Configurar volumen (fade in/out para sonido más suave)
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(volumen, audioContext.currentTime + 0.01);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duracion / 1000);
+            
+            // Reproducir
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duracion / 1000);
+        } catch (error) {
+            console.log('No se pudo reproducir el sonido:', error);
+            // Fallback: intentar con vibración si está disponible
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+        }
+    }
+
     // Verificar si Quagga está disponible
     function verificarQuagga() {
         if (typeof Quagga === 'undefined') {
@@ -1084,6 +1124,9 @@
             
             lastScannedCode = codigo;
             lastScanTime = ahora;
+            
+            // Reproducir sonido de confirmación
+            reproducirSonidoEscaneo();
             
             // Detener scanner temporalmente para evitar múltiples escaneos
             scanning = false;
