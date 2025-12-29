@@ -533,6 +533,17 @@ def exportar_comparativo(request, pk):
                     if cell.value and isinstance(cell.value, (int, float)):
                         cell.number_format = '#,##0'
                         cell.alignment = Alignment(horizontal="right", vertical="center")
+        
+        # Agregar copyright al final
+        copyright_row = len(df) + 2
+        from datetime import datetime
+        current_year = datetime.now().year
+        worksheet.merge_cells(f'A{copyright_row}:P{copyright_row}')
+        copyright_cell = worksheet[f'A{copyright_row}']
+        copyright_cell.value = f'© {current_year} Todos los derechos reservados por megadominio.co'
+        copyright_cell.alignment = Alignment(horizontal="center", vertical="center")
+        copyright_font = Font(size=9, italic=True, color="808080")
+        copyright_cell.font = copyright_font
     
     output.seek(0)
     
@@ -733,6 +744,25 @@ def descargar_ejemplo(request):
         nota_cell.font = Font(italic=True, size=9, color="666666")
         nota_cell.alignment = CellAlignment(horizontal="left", vertical="center", wrap_text=True)
         worksheet.row_dimensions[nota_row].height = 100
+        
+        # Agregar copyright en la hoja de Inventario
+        copyright_row = len(df_export) + 2
+        from datetime import datetime
+        current_year = datetime.now().year
+        worksheet.merge_cells(f'A{copyright_row}:F{copyright_row}')
+        copyright_cell = worksheet[f'A{copyright_row}']
+        copyright_cell.value = f'© {current_year} Todos los derechos reservados por megadominio.co'
+        copyright_cell.alignment = Alignment(horizontal="center", vertical="center")
+        copyright_font = Font(size=9, italic=True, color="808080")
+        copyright_cell.font = copyright_font
+        
+        # Agregar copyright en la hoja de Configuración
+        config_copyright_row = len(df_config) + 8
+        config_worksheet.merge_cells(f'A{config_copyright_row}:C{config_copyright_row}')
+        config_copyright_cell = config_worksheet[f'A{config_copyright_row}']
+        config_copyright_cell.value = f'© {current_year} Todos los derechos reservados por megadominio.co'
+        config_copyright_cell.alignment = Alignment(horizontal="center", vertical="center")
+        config_copyright_cell.font = copyright_font
     
     output.seek(0)
     

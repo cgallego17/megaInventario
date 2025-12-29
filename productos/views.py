@@ -506,6 +506,25 @@ def descargar_plantilla_importacion(request):
         # Ajustar anchos de columna en hoja de instrucciones
         worksheet_instrucciones.column_dimensions['A'].width = 25
         worksheet_instrucciones.column_dimensions['B'].width = 60
+        
+        # Agregar copyright en la hoja de Productos
+        copyright_row = len(df) + 2
+        from datetime import datetime
+        current_year = datetime.now().year
+        worksheet.merge_cells(f'A{copyright_row}:J{copyright_row}')
+        copyright_cell = worksheet[f'A{copyright_row}']
+        copyright_cell.value = f'© {current_year} Todos los derechos reservados por megadominio.co'
+        copyright_cell.alignment = Alignment(horizontal="center", vertical="center")
+        copyright_font = Font(size=9, italic=True, color="808080")
+        copyright_cell.font = copyright_font
+        
+        # Agregar copyright en la hoja de Instrucciones
+        instrucciones_copyright_row = len(instrucciones) + 2
+        worksheet_instrucciones.merge_cells(f'A{instrucciones_copyright_row}:B{instrucciones_copyright_row}')
+        instrucciones_copyright_cell = worksheet_instrucciones[f'A{instrucciones_copyright_row}']
+        instrucciones_copyright_cell.value = f'© {current_year} Todos los derechos reservados por megadominio.co'
+        instrucciones_copyright_cell.alignment = Alignment(horizontal="center", vertical="center")
+        instrucciones_copyright_cell.font = copyright_font
     
     output.seek(0)
     
@@ -650,6 +669,17 @@ def exportar_productos(request):
             valor_cell.font = total_font
             valor_cell.alignment = Alignment(horizontal="right", vertical="center")
             valor_cell.border = border
+        
+        # Agregar copyright al final
+        copyright_row = len(df) + 3
+        from datetime import datetime
+        current_year = datetime.now().year
+        worksheet.merge_cells(f'A{copyright_row}:M{copyright_row}')
+        copyright_cell = worksheet[f'A{copyright_row}']
+        copyright_cell.value = f'© {current_year} Todos los derechos reservados por megadominio.co'
+        copyright_cell.alignment = Alignment(horizontal="center", vertical="center")
+        copyright_font = Font(size=9, italic=True, color="808080")
+        copyright_cell.font = copyright_font
     
     output.seek(0)
     

@@ -151,6 +151,12 @@ def exportar_reporte_conteo(request):
             total_cantidad
         ])
     
+    # Agregar copyright al final
+    from datetime import datetime
+    current_year = datetime.now().year
+    writer.writerow([])
+    writer.writerow([f'© {current_year} Todos los derechos reservados por megadominio.co'])
+    
     return response
 
 
@@ -176,6 +182,12 @@ def exportar_reporte_inventario(request):
             producto.precio,
             valor_total
         ])
+    
+    # Agregar copyright al final
+    from datetime import datetime
+    current_year = datetime.now().year
+    writer.writerow([])
+    writer.writerow([f'© {current_year} Todos los derechos reservados por megadominio.co'])
     
     return response
 
