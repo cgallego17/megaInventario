@@ -932,11 +932,20 @@
                                                 <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">{{ item.producto.atributo }}</span>
                                             {% endif %}
                                         </td>
-                                        <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-primary">{{ item.cantidad }}</span></td>
+                                        <td style="padding: 0.4rem;" class="text-center">
+                                            <span class="badge bg-primary cantidad-badge" data-item-id="{{ item.id }}">{{ item.cantidad }}</span>
+                                        </td>
                                         <td style="padding: 0.2rem;" class="text-center">
-                                            <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="{{ item.id }}" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
-                                                <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
-                                            </button>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                {% if user.is_superuser or user.is_staff %}
+                                                <button class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                    <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="{{ item.id }}" title="Eliminar" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                    <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -962,11 +971,20 @@
                                                         <i class="bi bi-person"></i> {{ item.usuario_conteo.username|default:"N/A" }}
                                                     </small>
                                                 </td>
-                                                <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-success">{{ item.cantidad }}</span></td>
+                                                <td style="padding: 0.4rem;" class="text-center">
+                                                    <span class="badge bg-success cantidad-badge" data-item-id="{{ item.id }}">{{ item.cantidad }}</span>
+                                                </td>
                                                 <td style="padding: 0.2rem;" class="text-center">
-                                                    <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="{{ item.id }}" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
-                                                        <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
-                                                    </button>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        {% if user.is_superuser or user.is_staff %}
+                                                        <button class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                            <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                        <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="{{ item.id }}" title="Eliminar" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                            <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         {% endfor %}
@@ -992,7 +1010,7 @@
                                         {% endif %}
                                         <div class="flex-grow-1" style="min-width: 0;">
                                             <div class="d-flex align-items-center gap-2">
-                                                <span class="badge bg-primary" style="font-size: 0.9rem; min-width: 35px;">{{ item.cantidad }}</span>
+                                                <span class="badge bg-primary cantidad-badge" data-item-id="{{ item.id }}" style="font-size: 0.9rem; min-width: 35px;">{{ item.cantidad }}</span>
                                                 <div style="flex: 1; overflow: hidden;">
                                                     <strong style="font-size: 0.9rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                         {{ item.producto.nombre }}
@@ -1005,9 +1023,16 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <button class="btn btn-sm btn-danger eliminar-item p-1 ms-2" data-item-id="{{ item.id }}" style="min-width: 32px; height: 32px; flex-shrink: 0;">
-                                        <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
-                                    </button>
+                                    <div class="btn-group" role="group">
+                                        {% if user.is_superuser or user.is_staff %}
+                                        <button class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                                            <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="{{ item.id }}" title="Eliminar" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                                            <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             {% endfor %}
@@ -1046,6 +1071,9 @@
 
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 <script>
+    // Variable para verificar si el usuario es administrador
+    const esAdmin = {% if user.is_superuser or user.is_staff %}true{% else %}false{% endif %};
+    
     let scanning = false;
     let lastScannedCode = null;
     let lastScanTime = 0;
@@ -1504,11 +1532,16 @@
                 <td style="padding: 0.3rem;">${imagenHtml}</td>
                 <td style="padding: 0.4rem;"><small class="text-muted">${codigoCorto}</small></td>
                 <td style="padding: 0.4rem;">${nombreCorto}${atributoHtml}</td>
-                <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-primary">${cantidad}</span></td>
+                <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-primary cantidad-badge" data-item-id="${itemId || producto.codigo_barras}">${cantidad}</span></td>
                 <td style="padding: 0.2rem;" class="text-center">
-                    <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="${itemId || producto.codigo_barras}" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
-                        <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
-                    </button>
+                    <div class="btn-group btn-group-sm" role="group">
+                        ${esAdmin ? `<button class="btn btn-sm btn-warning editar-item p-1" data-item-id="${itemId || producto.codigo_barras}" data-cantidad="${cantidad}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                            <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
+                        </button>` : ''}
+                        <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="${itemId || producto.codigo_barras}" title="Eliminar" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                            <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                        </button>
+                    </div>
                 </td>
             `;
             tbody.insertBefore(newRow, tbody.firstChild);
@@ -1534,7 +1567,7 @@
                             ${imagenHtml}
                             <div class="flex-grow-1" style="min-width: 0;">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-primary" style="font-size: 0.9rem; min-width: 35px;">${cantidad}</span>
+                                    <span class="badge bg-primary cantidad-badge" data-item-id="${itemId || producto.codigo_barras}" style="font-size: 0.9rem; min-width: 35px;">${cantidad}</span>
                                     <div style="flex: 1; overflow: hidden;">
                                         <strong style="font-size: 0.9rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                             ${producto.nombre}
@@ -1545,9 +1578,14 @@
                                 </div>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-danger eliminar-item p-1 ms-2" data-item-id="${itemId || producto.codigo_barras}" style="min-width: 32px; height: 32px; flex-shrink: 0;">
-                            <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
-                        </button>
+                        <div class="btn-group" role="group">
+                            ${esAdmin ? `<button class="btn btn-sm btn-warning editar-item p-1" data-item-id="${itemId || producto.codigo_barras}" data-cantidad="${cantidad}" title="Editar cantidad" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                                <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
+                            </button>` : ''}
+                            <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="${itemId || producto.codigo_barras}" title="Eliminar" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                                <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
                 itemList.insertBefore(newCard, itemList.firstChild);
@@ -1595,6 +1633,132 @@
             }, 300);
         }, 4000);
     }
+
+    // Editar item - Abrir modal
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.editar-item')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const button = e.target.closest('.editar-item');
+            const itemId = button.dataset.itemId;
+            const cantidadActual = parseInt(button.dataset.cantidad) || 0;
+            
+            // Obtener información del producto
+            try {
+                const response = await fetch(`{% url 'conteo:editar_item' 0 %}`.replace('0', itemId));
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Llenar el modal con la información
+                    document.getElementById('item-id-editar').value = itemId;
+                    document.getElementById('nombre-producto-editar').textContent = data.item.producto.nombre;
+                    document.getElementById('codigo-producto-editar').textContent = data.item.producto.codigo_barras;
+                    document.getElementById('cantidad-actual-editar').textContent = data.item.cantidad;
+                    document.getElementById('nueva-cantidad').value = data.item.cantidad;
+                    document.getElementById('nueva-cantidad').focus();
+                    document.getElementById('nueva-cantidad').select();
+                    
+                    // Mostrar modal
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarCantidad'));
+                    modal.show();
+                } else {
+                    mostrarMensaje('Error al cargar información del item', 'danger');
+                }
+            } catch (error) {
+                console.error('Error al cargar item:', error);
+                mostrarMensaje('Error al cargar información del item', 'danger');
+            }
+        }
+    });
+
+    // Función para actualizar estadísticas
+    function actualizarEstadisticas() {
+        // Calcular total de items y cantidad sumando todos los badges
+        const badges = document.querySelectorAll('.cantidad-badge');
+        let totalItems = 0;
+        let totalCantidad = 0;
+        
+        badges.forEach(badge => {
+            const cantidad = parseInt(badge.textContent) || 0;
+            if (cantidad > 0) {
+                totalItems++;
+                totalCantidad += cantidad;
+            }
+        });
+        
+        // Actualizar contadores
+        const itemsCountEl = document.getElementById('items-count');
+        const itemsTotalEl = document.getElementById('items-total');
+        
+        if (itemsCountEl) {
+            itemsCountEl.textContent = totalItems;
+        }
+        if (itemsTotalEl) {
+            itemsTotalEl.textContent = totalCantidad.toLocaleString();
+        }
+    }
+
+    // Guardar cantidad editada
+    document.getElementById('btn-guardar-cantidad').addEventListener('click', async () => {
+        const itemId = document.getElementById('item-id-editar').value;
+        const nuevaCantidad = parseInt(document.getElementById('nueva-cantidad').value);
+        
+        if (isNaN(nuevaCantidad) || nuevaCantidad < 0) {
+            mostrarMensaje('Debe ingresar una cantidad válida mayor o igual a 0', 'danger');
+            document.getElementById('nueva-cantidad').focus();
+            return;
+        }
+        
+        try {
+            const formData = new URLSearchParams();
+            formData.append('cantidad', nuevaCantidad);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            const response = await fetch(`{% url 'conteo:editar_item' 0 %}`.replace('0', itemId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Actualizar la cantidad en la tabla
+                const badge = document.querySelector(`.cantidad-badge[data-item-id="${itemId}"]`);
+                if (badge) {
+                    badge.textContent = nuevaCantidad;
+                }
+                
+                // Actualizar también en la vista móvil si existe
+                const mobileBadge = document.querySelector(`#item-mobile-${itemId} .cantidad-badge`);
+                if (mobileBadge) {
+                    mobileBadge.textContent = nuevaCantidad;
+                }
+                
+                // Actualizar el botón de editar con la nueva cantidad
+                const editButtons = document.querySelectorAll(`.editar-item[data-item-id="${itemId}"]`);
+                editButtons.forEach(btn => {
+                    btn.dataset.cantidad = nuevaCantidad;
+                });
+                
+                // Actualizar estadísticas
+                actualizarEstadisticas();
+                
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarCantidad'));
+                modal.hide();
+                
+                mostrarMensaje(data.mensaje, 'success');
+            } else {
+                mostrarMensaje(data.error || 'Error al actualizar la cantidad', 'danger');
+            }
+        } catch (error) {
+            console.error('Error al editar:', error);
+            mostrarMensaje('Error al actualizar la cantidad', 'danger');
+        }
+    });
 
     // Eliminar item
     document.addEventListener('click', async (e) => {
@@ -1791,6 +1955,38 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Cantidad -->
+<div class="modal fade" id="modalEditarCantidad" tabindex="-1" aria-labelledby="modalEditarCantidadLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="modalEditarCantidadLabel">
+                    <i class="bi bi-pencil"></i> Editar Cantidad
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="info-producto-editar" class="mb-3">
+                    <p class="mb-1"><strong>Producto:</strong> <span id="nombre-producto-editar"></span></p>
+                    <p class="mb-0 text-muted small"><strong>Código:</strong> <span id="codigo-producto-editar"></span></p>
+                </div>
+                <div class="mb-3">
+                    <label for="nueva-cantidad" class="form-label">Nueva Cantidad:</label>
+                    <input type="number" class="form-control" id="nueva-cantidad" min="0" required>
+                    <small class="text-muted">Cantidad actual: <span id="cantidad-actual-editar"></span></small>
+                </div>
+                <input type="hidden" id="item-id-editar">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="btn-guardar-cantidad">
+                    <i class="bi bi-check-circle"></i> Guardar
+                </button>
             </div>
         </div>
     </div>

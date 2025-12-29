@@ -441,6 +441,75 @@ def finalizar_conteo(request, pk):
 
 
 @login_required
+def editar_item(request, item_id):
+    """Edita la cantidad de un item de conteo - Solo administradores"""
+    # Verificar que el usuario sea administrador
+    if not (request.user.is_superuser or request.user.is_staff):
+        return JsonResponse({'success': False, 'error': 'No tienes permisos para editar items. Solo los administradores pueden realizar esta acción.'})
+    
+    item = get_object_or_404(ItemConteo, pk=item_id)
+    conteo_id = item.conteo.id
+    conteo = item.conteo
+    producto = item.producto
+    cantidad_anterior = item.cantidad
+    
+    if request.method == 'POST':
+        try:
+            nueva_cantidad = int(request.POST.get('cantidad', 0))
+            if nueva_cantidad < 0:
+                return JsonResponse({'success': False, 'error': 'La cantidad no puede ser negativa'})
+            
+            with transaction.atomic():
+                # Actualizar cantidad
+                item.cantidad = nueva_cantidad
+                item.usuario_conteo = request.user
+                item.save()
+                
+                # Registrar movimiento
+                MovimientoConteo.objects.create(
+                    conteo=conteo,
+                    item_conteo=item,
+                    producto=producto,
+                    usuario=request.user,
+                    tipo='modificar',
+                    cantidad_anterior=cantidad_anterior,
+                    cantidad_nueva=nueva_cantidad,
+                    cantidad_cambiada=nueva_cantidad - cantidad_anterior
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'mensaje': f'Cantidad actualizada: {nueva_cantidad}',
+                'cantidad': nueva_cantidad,
+                'producto': {
+                    'nombre': producto.nombre,
+                    'codigo_barras': producto.codigo_barras,
+                    'marca': producto.marca or '',
+                    'atributo': producto.atributo or '',
+                }
+            })
+        except ValueError:
+            return JsonResponse({'success': False, 'error': 'Cantidad inválida'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    # GET request - retornar datos del item
+    return JsonResponse({
+        'success': True,
+        'item': {
+            'id': item.id,
+            'producto': {
+                'nombre': producto.nombre,
+                'codigo_barras': producto.codigo_barras,
+                'marca': producto.marca or '',
+                'atributo': producto.atributo or '',
+            },
+            'cantidad': item.cantidad
+        }
+    })
+
+
+@login_required
 def eliminar_item(request, item_id):
     """Elimina un item de conteo"""
     item = get_object_or_404(ItemConteo, pk=item_id)

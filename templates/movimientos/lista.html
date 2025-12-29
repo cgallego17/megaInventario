@@ -169,7 +169,7 @@
                             <select name="tipo" class="form-select form-select-sm">
                                 <option value="">Todos los tipos</option>
                                 <option value="agregar" {% if filtros.tipo == 'agregar' %}selected{% endif %}>Primer Conteo</option>
-                                <option value="modificar" {% if filtros.tipo == 'modificar' %}selected{% endif %}>Conteo Adicional</option>
+                                <option value="modificar" {% if filtros.tipo == 'modificar' %}selected{% endif %}>Modificar</option>
                                 {% if mostrar_eliminados %}
                                 <option value="eliminar" {% if filtros.tipo == 'eliminar' %}selected{% endif %}>Eliminar</option>
                                 {% endif %}
@@ -289,9 +289,9 @@
                             </td>
                             <td>
                                 {% if movimiento.tipo == 'agregar' %}
-                                    <span class="badge bg-success badge-tipo">Primer Conteo</span>
+                                    <span class="badge bg-success badge-tipo">{{ movimiento.get_tipo_display }}</span>
                                 {% elif movimiento.tipo == 'modificar' %}
-                                    <span class="badge bg-warning text-dark badge-tipo">Adicional</span>
+                                    <span class="badge bg-warning text-dark badge-tipo">{{ movimiento.get_tipo_display }}</span>
                                 {% else %}
                                     <span class="badge bg-danger badge-tipo">{{ movimiento.get_tipo_display }}</span>
                                 {% endif %}
