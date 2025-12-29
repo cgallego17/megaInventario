@@ -142,8 +142,8 @@ def exportar_reporte_conteo(request):
         writer.writerow([
             conteo.nombre,
             conteo.numero_conteo,
-            conteo.usuario_1.username,
-            conteo.usuario_2.username,
+            conteo.usuario_1.username if conteo.usuario_1 else '',
+            conteo.usuario_2.username if conteo.usuario_2 else '',
             conteo.get_estado_display(),
             conteo.fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
             conteo.fecha_fin.strftime('%Y-%m-%d %H:%M:%S') if conteo.fecha_fin else '',

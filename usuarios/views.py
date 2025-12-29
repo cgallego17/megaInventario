@@ -167,6 +167,7 @@ def lista_usuarios(request):
         )
     
     # Paginación
+    usuarios = usuarios.order_by('username')
     paginator = Paginator(usuarios, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
