@@ -938,7 +938,7 @@
                                         <td style="padding: 0.2rem;" class="text-center">
                                             <div class="btn-group btn-group-sm" role="group">
                                                 {% if user.is_superuser or user.is_staff %}
-                                                <button class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                <button type="button" class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;">
                                                     <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
                                                 </button>
                                                 {% endif %}
@@ -977,7 +977,7 @@
                                                 <td style="padding: 0.2rem;" class="text-center">
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         {% if user.is_superuser or user.is_staff %}
-                                                        <button class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                        <button type="button" class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;">
                                                             <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
                                                         </button>
                                                         {% endif %}
@@ -1025,7 +1025,7 @@
                                     </div>
                                     <div class="btn-group" role="group">
                                         {% if user.is_superuser or user.is_staff %}
-                                        <button class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                                        <button type="button" class="btn btn-sm btn-warning editar-item p-1" data-item-id="{{ item.id }}" data-cantidad="{{ item.cantidad }}" title="Editar cantidad" style="min-width: 32px; height: 32px; flex-shrink: 0;">
                                             <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
                                         </button>
                                         {% endif %}
@@ -1535,7 +1535,7 @@
                 <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-primary cantidad-badge" data-item-id="${itemId || producto.codigo_barras}">${cantidad}</span></td>
                 <td style="padding: 0.2rem;" class="text-center">
                     <div class="btn-group btn-group-sm" role="group">
-                        ${esAdmin ? `<button class="btn btn-sm btn-warning editar-item p-1" data-item-id="${itemId || producto.codigo_barras}" data-cantidad="${cantidad}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                        ${esAdmin ? `<button type="button" class="btn btn-sm btn-warning editar-item p-1" data-item-id="${itemId || producto.codigo_barras}" data-cantidad="${cantidad}" title="Editar cantidad" style="min-width: 28px; height: 28px; padding: 0;">
                             <i class="bi bi-pencil" style="font-size: 0.75rem;"></i>
                         </button>` : ''}
                         <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="${itemId || producto.codigo_barras}" title="Eliminar" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
@@ -1579,7 +1579,7 @@
                             </div>
                         </div>
                         <div class="btn-group" role="group">
-                            ${esAdmin ? `<button class="btn btn-sm btn-warning editar-item p-1" data-item-id="${itemId || producto.codigo_barras}" data-cantidad="${cantidad}" title="Editar cantidad" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                            ${esAdmin ? `<button type="button" class="btn btn-sm btn-warning editar-item p-1" data-item-id="${itemId || producto.codigo_barras}" data-cantidad="${cantidad}" title="Editar cantidad" style="min-width: 32px; height: 32px; flex-shrink: 0;">
                                 <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
                             </button>` : ''}
                             <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="${itemId || producto.codigo_barras}" title="Eliminar" style="min-width: 32px; height: 32px; flex-shrink: 0;">
@@ -1635,40 +1635,80 @@
     }
 
     // Editar item - Abrir modal
-    document.addEventListener('click', async (e) => {
-        if (e.target.closest('.editar-item')) {
-            e.preventDefault();
-            e.stopPropagation();
-            const button = e.target.closest('.editar-item');
-            const itemId = button.dataset.itemId;
-            const cantidadActual = parseInt(button.dataset.cantidad) || 0;
-            
-            // Obtener información del producto
-            try {
-                const response = await fetch(`{% url 'conteo:editar_item' 0 %}`.replace('0', itemId));
-                const data = await response.json();
-                
+    function abrirModalEditar(itemId) {
+        // Obtener información del producto
+        fetch(`{% url 'conteo:editar_item' 0 %}`.replace('0', itemId))
+            .then(response => response.json())
+            .then(data => {
                 if (data.success) {
                     // Llenar el modal con la información
-                    document.getElementById('item-id-editar').value = itemId;
-                    document.getElementById('nombre-producto-editar').textContent = data.item.producto.nombre;
-                    document.getElementById('codigo-producto-editar').textContent = data.item.producto.codigo_barras;
-                    document.getElementById('cantidad-actual-editar').textContent = data.item.cantidad;
-                    document.getElementById('nueva-cantidad').value = data.item.cantidad;
-                    document.getElementById('nueva-cantidad').focus();
-                    document.getElementById('nueva-cantidad').select();
+                    const itemIdInput = document.getElementById('item-id-editar');
+                    const nombreProducto = document.getElementById('nombre-producto-editar');
+                    const codigoProducto = document.getElementById('codigo-producto-editar');
+                    const cantidadActual = document.getElementById('cantidad-actual-editar');
+                    const nuevaCantidad = document.getElementById('nueva-cantidad');
+                    
+                    if (itemIdInput) itemIdInput.value = itemId;
+                    if (nombreProducto) nombreProducto.textContent = data.item.producto.nombre;
+                    if (codigoProducto) codigoProducto.textContent = data.item.producto.codigo_barras;
+                    if (cantidadActual) cantidadActual.textContent = data.item.cantidad;
+                    if (nuevaCantidad) {
+                        nuevaCantidad.value = data.item.cantidad;
+                        nuevaCantidad.focus();
+                        nuevaCantidad.select();
+                    }
                     
                     // Mostrar modal
-                    const modal = new bootstrap.Modal(document.getElementById('modalEditarCantidad'));
-                    modal.show();
+                    const modalElement = document.getElementById('modalEditarCantidad');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    } else {
+                        console.error('Modal de editar no encontrado');
+                        mostrarMensaje('Error: Modal no encontrado', 'danger');
+                    }
                 } else {
                     mostrarMensaje('Error al cargar información del item', 'danger');
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 console.error('Error al cargar item:', error);
                 mostrarMensaje('Error al cargar información del item', 'danger');
+            });
+    }
+    
+    // Event listener para botones de editar
+    document.addEventListener('click', function(e) {
+        // Buscar el botón de editar (puede ser el botón mismo o un elemento dentro)
+        const editarButton = e.target.closest('.editar-item');
+        if (editarButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const itemId = editarButton.getAttribute('data-item-id') || editarButton.dataset.itemId;
+            if (itemId) {
+                console.log('Abriendo modal de editar para item:', itemId);
+                abrirModalEditar(itemId);
+            } else {
+                console.error('Item ID no encontrado en botón de editar', editarButton);
+                mostrarMensaje('Error: No se pudo obtener el ID del item', 'danger');
             }
         }
+    });
+    
+    // También agregar event listeners directos a los botones existentes al cargar
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.editar-item').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const itemId = this.getAttribute('data-item-id') || this.dataset.itemId;
+                if (itemId) {
+                    console.log('Abriendo modal de editar (directo) para item:', itemId);
+                    abrirModalEditar(itemId);
+                }
+            });
+        });
     });
 
     // Función para actualizar estadísticas
@@ -1698,67 +1738,85 @@
         }
     }
 
-    // Guardar cantidad editada
-    document.getElementById('btn-guardar-cantidad').addEventListener('click', async () => {
-        const itemId = document.getElementById('item-id-editar').value;
-        const nuevaCantidad = parseInt(document.getElementById('nueva-cantidad').value);
-        
-        if (isNaN(nuevaCantidad) || nuevaCantidad < 0) {
-            mostrarMensaje('Debe ingresar una cantidad válida mayor o igual a 0', 'danger');
-            document.getElementById('nueva-cantidad').focus();
+    // Guardar cantidad editada - Esperar a que el DOM esté listo
+    function inicializarBotonGuardar() {
+        const btnGuardar = document.getElementById('btn-guardar-cantidad');
+        if (!btnGuardar) {
+            // Si el botón no existe aún, intentar de nuevo después de un breve delay
+            setTimeout(inicializarBotonGuardar, 100);
             return;
         }
         
-        try {
-            const formData = new URLSearchParams();
-            formData.append('cantidad', nuevaCantidad);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        btnGuardar.addEventListener('click', async () => {
+            const itemId = document.getElementById('item-id-editar').value;
+            const nuevaCantidad = parseInt(document.getElementById('nueva-cantidad').value);
             
-            const response = await fetch(`{% url 'conteo:editar_item' 0 %}`.replace('0', itemId), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: formData
-            });
+            if (isNaN(nuevaCantidad) || nuevaCantidad < 0) {
+                mostrarMensaje('Debe ingresar una cantidad válida mayor o igual a 0', 'danger');
+                document.getElementById('nueva-cantidad').focus();
+                return;
+            }
             
-            const data = await response.json();
-            
-            if (data.success) {
-                // Actualizar la cantidad en la tabla
-                const badge = document.querySelector(`.cantidad-badge[data-item-id="${itemId}"]`);
-                if (badge) {
-                    badge.textContent = nuevaCantidad;
-                }
+            try {
+                const formData = new URLSearchParams();
+                formData.append('cantidad', nuevaCantidad);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
                 
-                // Actualizar también en la vista móvil si existe
-                const mobileBadge = document.querySelector(`#item-mobile-${itemId} .cantidad-badge`);
-                if (mobileBadge) {
-                    mobileBadge.textContent = nuevaCantidad;
-                }
-                
-                // Actualizar el botón de editar con la nueva cantidad
-                const editButtons = document.querySelectorAll(`.editar-item[data-item-id="${itemId}"]`);
-                editButtons.forEach(btn => {
-                    btn.dataset.cantidad = nuevaCantidad;
+                const response = await fetch(`{% url 'conteo:editar_item' 0 %}`.replace('0', itemId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
                 });
                 
-                // Actualizar estadísticas
-                actualizarEstadisticas();
+                const data = await response.json();
                 
-                // Cerrar modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarCantidad'));
-                modal.hide();
-                
-                mostrarMensaje(data.mensaje, 'success');
-            } else {
-                mostrarMensaje(data.error || 'Error al actualizar la cantidad', 'danger');
+                if (data.success) {
+                    // Actualizar la cantidad en la tabla
+                    const badge = document.querySelector(`.cantidad-badge[data-item-id="${itemId}"]`);
+                    if (badge) {
+                        badge.textContent = nuevaCantidad;
+                    }
+                    
+                    // Actualizar también en la vista móvil si existe
+                    const mobileBadge = document.querySelector(`#item-mobile-${itemId} .cantidad-badge`);
+                    if (mobileBadge) {
+                        mobileBadge.textContent = nuevaCantidad;
+                    }
+                    
+                    // Actualizar el botón de editar con la nueva cantidad
+                    const editButtons = document.querySelectorAll(`.editar-item[data-item-id="${itemId}"]`);
+                    editButtons.forEach(btn => {
+                        btn.dataset.cantidad = nuevaCantidad;
+                    });
+                    
+                    // Actualizar estadísticas
+                    actualizarEstadisticas();
+                    
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarCantidad'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    mostrarMensaje(data.mensaje, 'success');
+                } else {
+                    mostrarMensaje(data.error || 'Error al actualizar la cantidad', 'danger');
+                }
+            } catch (error) {
+                console.error('Error al editar:', error);
+                mostrarMensaje('Error al actualizar la cantidad', 'danger');
             }
-        } catch (error) {
-            console.error('Error al editar:', error);
-            mostrarMensaje('Error al actualizar la cantidad', 'danger');
-        }
-    });
+        });
+    }
+    
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializarBotonGuardar);
+    } else {
+        inicializarBotonGuardar();
+    }
 
     // Eliminar item
     document.addEventListener('click', async (e) => {
