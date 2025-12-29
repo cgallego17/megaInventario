@@ -2,33 +2,126 @@
 
 {% block title %}Conteos - Mega Inventario{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Vista móvil - Cards */
+    @media (max-width: 767.98px) {
+        .conteo-card {
+            border-left: 4px solid;
+            margin-bottom: 1rem;
+        }
+        
+        .conteo-card.en-proceso {
+            border-left-color: #ffc107;
+        }
+        
+        .conteo-card.finalizado {
+            border-left-color: #198754;
+        }
+        
+        .conteo-card.cancelado {
+            border-left-color: #dc3545;
+        }
+        
+        .conteo-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .conteo-info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .conteo-info-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        
+        .conteo-info-value {
+            text-align: right;
+            font-size: 0.9rem;
+        }
+        
+        .conteo-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        
+        .conteo-actions .btn {
+            flex: 1;
+        }
+        
+        .table-desktop {
+            display: none;
+        }
+    }
+    
+    /* Vista desktop - Tabla */
+    @media (min-width: 768px) {
+        .conteo-cards-mobile {
+            display: none;
+        }
+        
+        .table-desktop {
+            display: table;
+        }
+    }
+    
+    /* Mejoras generales */
+    .filtros-mobile {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filtros-mobile .btn {
+        width: 100%;
+    }
+    
+    @media (max-width: 767.98px) {
+        .header-mobile {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 1rem;
+        }
+        
+        .header-mobile .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-clipboard-check"></i> Conteos</h1>
+<div class="container mt-3 mt-md-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 header-mobile">
+        <h1 class="h4 h3-md"><i class="bi bi-clipboard-check"></i> Conteos</h1>
         <a href="{% url 'conteo:crear_conteo' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Nuevo Conteo
+            <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Nuevo </span>Conteo
         </a>
     </div>
 
     <!-- Filtros -->
     <div class="card mb-3">
         <div class="card-body">
-            <form method="get" class="d-flex gap-2 align-items-end">
+            <form method="get" class="d-flex gap-2 align-items-end filtros-mobile">
                 <div class="flex-grow-1">
-                    <label class="form-label">Filtrar por número de conteo:</label>
-                    <select name="numero_conteo" class="form-select">
+                    <label class="form-label small">Filtrar por número de conteo:</label>
+                    <select name="numero_conteo" class="form-select form-select-sm">
                         <option value="">Todos los conteos</option>
                         <option value="1" {% if numero_conteo_filtro == '1' %}selected{% endif %}>Conteo 1</option>
                         <option value="2" {% if numero_conteo_filtro == '2' %}selected{% endif %}>Conteo 2</option>
                         <option value="3" {% if numero_conteo_filtro == '3' %}selected{% endif %}>Conteo 3</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-outline-primary">
-                    <i class="bi bi-filter"></i> Filtrar
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-filter"></i> <span class="d-none d-sm-inline">Filtrar</span>
                 </button>
-                <a href="{% url 'conteo:lista_conteos' %}" class="btn btn-outline-secondary">
-                    <i class="bi bi-x-circle"></i> Limpiar
+                <a href="{% url 'conteo:lista_conteos' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i> <span class="d-none d-sm-inline">Limpiar</span>
                 </a>
             </form>
         </div>
@@ -40,47 +133,14 @@
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0"><i class="bi bi-list-ol"></i> Conteo 1</h5>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Parejas</th>
-                            <th>Usuarios Manuales</th>
-                            <th>Estado</th>
-                            <th>Items</th>
-                            <th>Total Cantidad</th>
-                            <th>Creado por</th>
-                            <th>Fecha Creación</th>
-                            <th>Modificado por</th>
-                            <th>Fecha Modificación</th>
-                            <th>Fecha Inicio</th>
-                            <th>Fecha Fin</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for conteo in conteos_por_numero.1 %}
-                        <tr>
-                            <td><strong>{{ conteo.nombre }}</strong></td>
-                            <td>
-                                {% if conteo.parejas.all %}
-                                    {% for pareja in conteo.parejas.all %}
-                                        <span class="badge bg-{{ pareja.color }} mb-1 d-inline-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if conteo.usuario_1 and conteo.usuario_2 %}
-                                    {{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
+        <div class="card-body p-0">
+            <!-- Vista móvil - Cards -->
+            <div class="conteo-cards-mobile p-3">
+                {% for conteo in conteos_por_numero.1 %}
+                    <div class="card conteo-card {{ conteo.estado }} mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0 fw-bold">{{ conteo.nombre }}</h6>
                                 {% if conteo.estado == 'en_proceso' %}
                                     <span class="badge bg-warning">En Proceso</span>
                                 {% elif conteo.estado == 'finalizado' %}
@@ -88,36 +148,44 @@
                                 {% else %}
                                     <span class="badge bg-danger">Cancelado</span>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <span class="badge bg-info">{{ conteo.total_items }}</span>
-                            </td>
-                            <td>
-                                <strong>{{ conteo.total_cantidad }}</strong>
-                            </td>
-                            <td>
-                                {% if conteo.usuario_creador %}
-                                    <small>{{ conteo.usuario_creador.username }}</small>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <small>{{ conteo.fecha_creacion|date:"d/m/Y H:i" }}</small>
-                            </td>
-                            <td>
-                                {% if conteo.usuario_modificador %}
-                                    <small>{{ conteo.usuario_modificador.username }}</small>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <small>{{ conteo.fecha_modificacion|date:"d/m/Y H:i" }}</small>
-                            </td>
-                            <td>{{ conteo.fecha_inicio|date:"d/m/Y H:i" }}</td>
-                            <td>{{ conteo.fecha_fin|date:"d/m/Y H:i"|default:"-" }}</td>
-                            <td>
+                            </div>
+                            
+                            <div class="conteo-info-row">
+                                <span class="conteo-info-label">Items:</span>
+                                <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                            </div>
+                            <div class="conteo-info-row">
+                                <span class="conteo-info-label">Total Cantidad:</span>
+                                <span class="conteo-info-value"><strong>{{ conteo.total_cantidad }}</strong></span>
+                            </div>
+                            {% if conteo.parejas.all %}
+                            <div class="conteo-info-row">
+                                <span class="conteo-info-label">Parejas:</span>
+                                <span class="conteo-info-value">
+                                    {% for pareja in conteo.parejas.all %}
+                                        <span class="badge bg-{{ pareja.color }} mb-1 d-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                    {% endfor %}
+                                </span>
+                            </div>
+                            {% endif %}
+                            {% if conteo.usuario_1 and conteo.usuario_2 %}
+                            <div class="conteo-info-row">
+                                <span class="conteo-info-label">Usuarios:</span>
+                                <span class="conteo-info-value"><small>{{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}</small></span>
+                            </div>
+                            {% endif %}
+                            <div class="conteo-info-row">
+                                <span class="conteo-info-label">Fecha Inicio:</span>
+                                <span class="conteo-info-value"><small>{{ conteo.fecha_inicio|date:"d/m/Y H:i" }}</small></span>
+                            </div>
+                            {% if conteo.fecha_fin %}
+                            <div class="conteo-info-row">
+                                <span class="conteo-info-label">Fecha Fin:</span>
+                                <span class="conteo-info-value"><small>{{ conteo.fecha_fin|date:"d/m/Y H:i" }}</small></span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="conteo-actions">
                                 <a href="{% url 'conteo:detalle_conteo' conteo.pk %}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-eye"></i> Ver
                                 </a>
@@ -126,11 +194,104 @@
                                     <i class="bi bi-check-circle"></i> Finalizar
                                 </a>
                                 {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Vista desktop - Tabla -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-sm table-desktop mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Parejas</th>
+                                <th>Usuarios Manuales</th>
+                                <th>Estado</th>
+                                <th>Items</th>
+                                <th>Total Cantidad</th>
+                                <th>Creado por</th>
+                                <th>Fecha Creación</th>
+                                <th>Modificado por</th>
+                                <th>Fecha Modificación</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for conteo in conteos_por_numero.1 %}
+                            <tr>
+                                <td><strong>{{ conteo.nombre }}</strong></td>
+                                <td>
+                                    {% if conteo.parejas.all %}
+                                        {% for pareja in conteo.parejas.all %}
+                                            <span class="badge bg-{{ pareja.color }} mb-1 d-inline-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if conteo.usuario_1 and conteo.usuario_2 %}
+                                        {{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if conteo.estado == 'en_proceso' %}
+                                        <span class="badge bg-warning">En Proceso</span>
+                                    {% elif conteo.estado == 'finalizado' %}
+                                        <span class="badge bg-success">Finalizado</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Cancelado</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ conteo.total_items }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ conteo.total_cantidad }}</strong>
+                                </td>
+                                <td>
+                                    {% if conteo.usuario_creador %}
+                                        <small>{{ conteo.usuario_creador.username }}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ conteo.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                                </td>
+                                <td>
+                                    {% if conteo.usuario_modificador %}
+                                        <small>{{ conteo.usuario_modificador.username }}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ conteo.fecha_modificacion|date:"d/m/Y H:i" }}</small>
+                                </td>
+                                <td>{{ conteo.fecha_inicio|date:"d/m/Y H:i" }}</td>
+                                <td>{{ conteo.fecha_fin|date:"d/m/Y H:i"|default:"-" }}</td>
+                                <td>
+                                    <a href="{% url 'conteo:detalle_conteo' conteo.pk %}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                    {% if conteo.estado == 'en_proceso' %}
+                                    <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-circle"></i> Finalizar
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -141,9 +302,76 @@
         <div class="card-header bg-success text-white">
             <h5 class="mb-0"><i class="bi bi-list-ol"></i> Conteo 2</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
+            <!-- Vista móvil - Cards -->
+            <div class="conteo-cards-mobile p-3">
+                {% for conteo in conteos_por_numero.2 %}
+                <div class="card conteo-card {{ conteo.estado }} mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0 fw-bold">{{ conteo.nombre }}</h6>
+                            {% if conteo.estado == 'en_proceso' %}
+                                <span class="badge bg-warning">En Proceso</span>
+                            {% elif conteo.estado == 'finalizado' %}
+                                <span class="badge bg-success">Finalizado</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Items:</span>
+                            <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                        </div>
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Total Cantidad:</span>
+                            <span class="conteo-info-value"><strong>{{ conteo.total_cantidad }}</strong></span>
+                        </div>
+                        {% if conteo.parejas.all %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Parejas:</span>
+                            <span class="conteo-info-value">
+                                {% for pareja in conteo.parejas.all %}
+                                    <span class="badge bg-{{ pareja.color }} mb-1 d-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                {% endfor %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        {% if conteo.usuario_1 and conteo.usuario_2 %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Usuarios:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}</small></span>
+                        </div>
+                        {% endif %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Fecha Inicio:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.fecha_inicio|date:"d/m/Y H:i" }}</small></span>
+                        </div>
+                        {% if conteo.fecha_fin %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Fecha Fin:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.fecha_fin|date:"d/m/Y H:i" }}</small></span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="conteo-actions">
+                            <a href="{% url 'conteo:detalle_conteo' conteo.pk %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% if conteo.estado == 'en_proceso' %}
+                            <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle"></i> Finalizar
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Vista desktop - Tabla -->
             <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
+                <table class="table table-striped table-hover table-sm table-desktop mb-0">
                     <thead>
                         <tr>
                             <th>Nombre</th>
@@ -242,9 +470,76 @@
         <div class="card-header bg-info text-white">
             <h5 class="mb-0"><i class="bi bi-list-ol"></i> Conteo 3</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
+            <!-- Vista móvil - Cards -->
+            <div class="conteo-cards-mobile p-3">
+                {% for conteo in conteos_por_numero.3 %}
+                <div class="card conteo-card {{ conteo.estado }} mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0 fw-bold">{{ conteo.nombre }}</h6>
+                            {% if conteo.estado == 'en_proceso' %}
+                                <span class="badge bg-warning">En Proceso</span>
+                            {% elif conteo.estado == 'finalizado' %}
+                                <span class="badge bg-success">Finalizado</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Items:</span>
+                            <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                        </div>
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Total Cantidad:</span>
+                            <span class="conteo-info-value"><strong>{{ conteo.total_cantidad }}</strong></span>
+                        </div>
+                        {% if conteo.parejas.all %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Parejas:</span>
+                            <span class="conteo-info-value">
+                                {% for pareja in conteo.parejas.all %}
+                                    <span class="badge bg-{{ pareja.color }} mb-1 d-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                {% endfor %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        {% if conteo.usuario_1 and conteo.usuario_2 %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Usuarios:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}</small></span>
+                        </div>
+                        {% endif %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Fecha Inicio:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.fecha_inicio|date:"d/m/Y H:i" }}</small></span>
+                        </div>
+                        {% if conteo.fecha_fin %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Fecha Fin:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.fecha_fin|date:"d/m/Y H:i" }}</small></span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="conteo-actions">
+                            <a href="{% url 'conteo:detalle_conteo' conteo.pk %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% if conteo.estado == 'en_proceso' %}
+                            <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle"></i> Finalizar
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Vista desktop - Tabla -->
             <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
+                <table class="table table-striped table-hover table-sm table-desktop mb-0">
                     <thead>
                         <tr>
                             <th>Nombre</th>
@@ -344,9 +639,79 @@
         <div class="card-header">
             <h5 class="mb-0"><i class="bi bi-list"></i> Todos los Conteos</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
+            <!-- Vista móvil - Cards -->
+            <div class="conteo-cards-mobile p-3">
+                {% for conteo in conteos %}
+                <div class="card conteo-card {{ conteo.estado }} mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-0 fw-bold">{{ conteo.nombre }}</h6>
+                                <span class="badge bg-primary">Conteo {{ conteo.numero_conteo }}</span>
+                            </div>
+                            {% if conteo.estado == 'en_proceso' %}
+                                <span class="badge bg-warning">En Proceso</span>
+                            {% elif conteo.estado == 'finalizado' %}
+                                <span class="badge bg-success">Finalizado</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Items:</span>
+                            <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                        </div>
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Total Cantidad:</span>
+                            <span class="conteo-info-value"><strong>{{ conteo.total_cantidad }}</strong></span>
+                        </div>
+                        {% if conteo.parejas.all %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Parejas:</span>
+                            <span class="conteo-info-value">
+                                {% for pareja in conteo.parejas.all %}
+                                    <span class="badge bg-{{ pareja.color }} mb-1 d-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                {% endfor %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        {% if conteo.usuario_1 and conteo.usuario_2 %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Usuarios:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}</small></span>
+                        </div>
+                        {% endif %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Fecha Inicio:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.fecha_inicio|date:"d/m/Y H:i" }}</small></span>
+                        </div>
+                        {% if conteo.fecha_fin %}
+                        <div class="conteo-info-row">
+                            <span class="conteo-info-label">Fecha Fin:</span>
+                            <span class="conteo-info-value"><small>{{ conteo.fecha_fin|date:"d/m/Y H:i" }}</small></span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="conteo-actions">
+                            <a href="{% url 'conteo:detalle_conteo' conteo.pk %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% if conteo.estado == 'en_proceso' %}
+                            <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle"></i> Finalizar
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Vista desktop - Tabla -->
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table class="table table-striped table-hover table-desktop mb-0">
                     <thead>
                         <tr>
                             <th>Número</th>

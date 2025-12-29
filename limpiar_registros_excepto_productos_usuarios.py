@@ -20,8 +20,9 @@ django.setup()
 from django.db import transaction
 from django.contrib.auth.models import User
 from conteo.models import Conteo, ItemConteo
-from comparativos.models import ComparativoInventario, InventarioSistema
+from comparativos.models import ComparativoInventario, InventarioSistema, ItemComparativo
 from movimientos.models import MovimientoConteo
+from reportes.models import Reporte
 from productos.models import Producto
 from usuarios.models import ParejaConteo, PerfilUsuario
 
@@ -32,8 +33,9 @@ def main():
     print()
     print("Este script eliminará:")
     print("  - Conteos y Items de Conteo")
-    print("  - Comparativos e Inventarios")
+    print("  - Comparativos, Inventarios e Items Comparativos")
     print("  - Movimientos")
+    print("  - Reportes")
     print()
     print("Se mantendrán:")
     print("  - Productos")
@@ -46,7 +48,9 @@ def main():
     items_count = ItemConteo.objects.count()
     comparativos_count = ComparativoInventario.objects.count()
     inventarios_count = InventarioSistema.objects.count()
+    items_comparativo_count = ItemComparativo.objects.count()
     movimientos_count = MovimientoConteo.objects.count()
+    reportes_count = Reporte.objects.count()
     productos_count = Producto.objects.count()
     usuarios_count = User.objects.count()
     parejas_count = ParejaConteo.objects.count()
@@ -58,14 +62,16 @@ def main():
     print(f"Items de Conteo: {items_count}")
     print(f"Comparativos: {comparativos_count}")
     print(f"Inventarios: {inventarios_count}")
+    print(f"Items Comparativos: {items_comparativo_count}")
     print(f"Movimientos: {movimientos_count}")
+    print(f"Reportes: {reportes_count}")
     print()
     print(f"Productos (se mantienen): {productos_count}")
     print(f"Usuarios (se mantienen): {usuarios_count}")
     print(f"Parejas (se mantienen): {parejas_count}")
     print()
     
-    total_a_eliminar = conteos_count + items_count + comparativos_count + inventarios_count + movimientos_count
+    total_a_eliminar = conteos_count + items_count + comparativos_count + inventarios_count + items_comparativo_count + movimientos_count + reportes_count
     
     if total_a_eliminar == 0:
         print("No hay registros para eliminar.")
@@ -93,6 +99,10 @@ def main():
     try:
         with transaction.atomic():
             # Eliminar en orden (primero los dependientes)
+            print("  - Eliminando Items Comparativos...")
+            items_comparativo_eliminados = ItemComparativo.objects.all().delete()[0]
+            print(f"    Eliminados: {items_comparativo_eliminados}")
+            
             print("  - Eliminando Items de Conteo...")
             items_eliminados = ItemConteo.objects.all().delete()[0]
             print(f"    Eliminados: {items_eliminados}")
@@ -100,6 +110,10 @@ def main():
             print("  - Eliminando Movimientos...")
             movimientos_eliminados = MovimientoConteo.objects.all().delete()[0]
             print(f"    Eliminados: {movimientos_eliminados}")
+            
+            print("  - Eliminando Reportes...")
+            reportes_eliminados = Reporte.objects.all().delete()[0]
+            print(f"    Eliminados: {reportes_eliminados}")
             
             print("  - Eliminando Inventarios...")
             inventarios_eliminados = InventarioSistema.objects.all().delete()[0]
@@ -125,7 +139,9 @@ def main():
         print(f"  Items de Conteo: {ItemConteo.objects.count()}")
         print(f"  Comparativos: {ComparativoInventario.objects.count()}")
         print(f"  Inventarios: {InventarioSistema.objects.count()}")
+        print(f"  Items Comparativos: {ItemComparativo.objects.count()}")
         print(f"  Movimientos: {MovimientoConteo.objects.count()}")
+        print(f"  Reportes: {Reporte.objects.count()}")
         print()
         print(f"  Productos: {Producto.objects.count()} (mantenidos)")
         print(f"  Usuarios: {User.objects.count()} (mantenidos)")
