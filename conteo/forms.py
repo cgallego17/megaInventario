@@ -88,7 +88,8 @@ class ItemConteoForm(forms.ModelForm):
         codigo_barras = self.cleaned_data.get('codigo_barras')
         if codigo_barras:
             try:
-                producto = Producto.objects.get(codigo_barras=codigo_barras, activo=True)
+                # Buscar todos los productos (activos e inactivos)
+                producto = Producto.objects.get(codigo_barras=codigo_barras)
                 return producto
             except Producto.DoesNotExist:
                 raise forms.ValidationError(f"Producto con código {codigo_barras} no encontrado")
