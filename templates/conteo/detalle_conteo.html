@@ -845,7 +845,7 @@
                             {% else %}
                                 <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar producto..." autofocus>
                             {% endif %}
-                            <input type="number" id="cantidad" class="form-control" placeholder="Cant. *" min="1" required style="max-width: 80px;" title="Ingrese la cantidad a agregar (mínimo 1)">
+                            <input type="number" id="cantidad" class="form-control" placeholder="Cant. *" min="0" required style="max-width: 80px;" title="Ingrese la cantidad a agregar (puede ser 0)">
                             <button id="agregar-manual" class="btn btn-primary btn-action-mobile">
                                 <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Agregar</span>
                             </button>
@@ -1260,8 +1260,8 @@
             
             mostrarMensaje(`Código escaneado: ${codigo}`, 'success');
             
-            if (!cantidad || cantidad <= 0) {
-                mostrarMensaje('Debe ingresar una cantidad mayor a 0 antes de escanear', 'warning');
+            if (isNaN(cantidad) || cantidad < 0) {
+                mostrarMensaje('Debe ingresar una cantidad válida (0 o mayor) antes de escanear', 'warning');
                 cantidadInput.focus();
                 return;
             }
@@ -1405,8 +1405,8 @@
     // Agregar producto manualmente
     agregarManualBtn.addEventListener('click', () => {
         const cantidad = parseInt(cantidadInput.value);
-        if (!cantidad || cantidad <= 0) {
-            mostrarMensaje('Debe ingresar una cantidad mayor a 0', 'danger');
+        if (isNaN(cantidad) || cantidad < 0) {
+            mostrarMensaje('Debe ingresar una cantidad válida (0 o mayor)', 'danger');
             cantidadInput.focus();
             return;
         }
