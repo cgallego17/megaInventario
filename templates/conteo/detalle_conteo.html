@@ -1896,23 +1896,42 @@
             
             // Mostrar mensaje si no hay resultados
             const tbody = document.getElementById('tbody-pendientes');
-            let mensajeNoResultados = tbody.querySelector('.no-resultados');
+            const pendientesMobile = document.getElementById('pendientes-mobile');
+            
+            // Mensaje en tabla desktop
+            let mensajeNoResultados = tbody ? tbody.querySelector('.no-resultados') : null;
             if (busqueda && visibleCount === 0) {
-                if (!mensajeNoResultados) {
+                if (tbody && !mensajeNoResultados) {
                     mensajeNoResultados = document.createElement('tr');
                     mensajeNoResultados.className = 'no-resultados';
                     mensajeNoResultados.innerHTML = '<td colspan="5" class="text-center py-3 text-muted">No se encontraron productos pendientes que coincidan con la búsqueda</td>';
                     tbody.appendChild(mensajeNoResultados);
                 }
+                // Mensaje en móvil
+                if (pendientesMobile) {
+                    let mensajeMobile = pendientesMobile.querySelector('.no-resultados-mobile');
+                    if (!mensajeMobile) {
+                        mensajeMobile = document.createElement('div');
+                        mensajeMobile.className = 'alert alert-info no-resultados-mobile mb-0';
+                        mensajeMobile.innerHTML = '<i class="bi bi-info-circle"></i> No se encontraron productos pendientes que coincidan con la búsqueda';
+                        pendientesMobile.appendChild(mensajeMobile);
+                    }
+                }
             } else {
                 if (mensajeNoResultados) {
                     mensajeNoResultados.remove();
+                }
+                if (pendientesMobile) {
+                    const mensajeMobile = pendientesMobile.querySelector('.no-resultados-mobile');
+                    if (mensajeMobile) {
+                        mensajeMobile.remove();
+                    }
                 }
             }
         });
     }
     
-    // Hacer clickeables las filas de productos pendientes
+    // Hacer clickeables las filas y cards de productos pendientes
     document.addEventListener('click', function(e) {
         const fila = e.target.closest('.producto-pendiente-row');
         if (fila) {
@@ -2038,7 +2057,9 @@
                             <div class="mb-3">
                                 <input type="text" id="buscar-pendientes" class="form-control form-control-sm" placeholder="Buscar productos pendientes..." autocomplete="off">
                             </div>
-                            <div class="table-responsive" style="max-height: 50vh;">
+                            
+                            <!-- Vista desktop: Tabla -->
+                            <div class="table-responsive d-none d-md-block" style="max-height: 50vh;">
                                 <table class="table table-sm table-hover" id="tabla-pendientes">
                                     <thead class="table-light sticky-top">
                                         <tr>
@@ -2087,6 +2108,49 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
+                            </div>
+                            
+                            <!-- Vista móvil: Cards -->
+                            <div class="d-md-none" id="pendientes-mobile" style="max-height: 50vh; overflow-y: auto;">
+                                {% for producto in productos_no_contados %}
+                                    <div class="card mb-2 producto-pendiente-row" 
+                                         style="cursor: pointer; border-left: 3px solid #dc3545;"
+                                         data-codigo-barras="{{ producto.codigo_barras }}"
+                                         data-codigo="{{ producto.codigo|default:'' }}"
+                                         data-nombre="{{ producto.nombre }}"
+                                         title="Clic para buscar este producto">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div style="flex-shrink: 0;">
+                                                    {% if producto.imagen %}
+                                                        <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                                                    {% else %}
+                                                        <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 6px;">
+                                                            <i class="bi bi-image text-muted"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="flex-grow-1" style="min-width: 0;">
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <span class="badge bg-danger" style="font-size: 0.75rem;">Pendiente</span>
+                                                        {% if producto.marca %}
+                                                            <span class="badge bg-info" style="font-size: 0.7rem;">{{ producto.marca }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <strong class="d-block" style="font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                        {{ producto.nombre }}
+                                                    </strong>
+                                                    {% if producto.atributo %}
+                                                        <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ producto.atributo }}</span>
+                                                    {% endif %}
+                                                    <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                                                        Código: {{ producto.codigo|default:producto.codigo_barras }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             </div>
                         {% else %}
                             <div class="alert alert-success mb-0">

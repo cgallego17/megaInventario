@@ -137,19 +137,29 @@ def detalle_conteo(request, pk):
     # Calcular porcentaje de productos contados (de los asignados o todos)
     porcentaje_contado = (total_items / total_productos_asignados * 100) if total_productos_asignados > 0 else 0
     
-    # Obtener IDs de productos ya contados (por la pareja)
+    # Obtener IDs de productos ya contados en ESTE conteo (por CUALQUIER usuario)
+    # Esto asegura que si un producto fue contado por cualquier usuario, no aparezca en pendientes
+    productos_contados_ids_todos = set(conteo.items.values_list('producto_id', flat=True))
+    
+    # Obtener IDs de productos contados por la pareja (para mostrar en "contados")
     if es_admin:
-        productos_contados_ids = set(items_pareja_qs.values_list('producto_id', flat=True))
+        productos_contados_ids_pareja = set(items_pareja_qs.values_list('producto_id', flat=True))
     else:
-        productos_contados_ids = set(items.values_list('producto_id', flat=True))
+        productos_contados_ids_pareja = set(items.values_list('producto_id', flat=True))
     
     # Separar productos en contados y no contados
-    if productos_contados_ids:
-        productos_contados = productos_asignados.filter(id__in=productos_contados_ids).order_by('marca', 'nombre')
-        productos_no_contados = productos_asignados.exclude(id__in=productos_contados_ids).order_by('marca', 'nombre')
+    # Contados: solo los contados por la pareja (para mostrar en la tab de contados)
+    # No contados: productos que NO han sido contados por NINGÚN usuario en el conteo
+    if productos_contados_ids_pareja:
+        productos_contados = productos_asignados.filter(id__in=productos_contados_ids_pareja).order_by('marca', 'nombre')
     else:
-        # Si no hay productos contados, todos los productos asignados están pendientes
         productos_contados = productos_asignados.none()
+    
+    # Productos pendientes: excluir TODOS los productos que ya fueron contados en el conteo
+    if productos_contados_ids_todos:
+        productos_no_contados = productos_asignados.exclude(id__in=productos_contados_ids_todos).order_by('marca', 'nombre')
+    else:
+        # Si no hay productos contados en el conteo, todos los productos asignados están pendientes
         productos_no_contados = productos_asignados.order_by('marca', 'nombre')
     
     return render(request, 'conteo/detalle_conteo.html', {
