@@ -845,7 +845,7 @@
                             {% else %}
                                 <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar producto..." autofocus>
                             {% endif %}
-                            <input type="number" id="cantidad" class="form-control" placeholder="Cant." value="0" min="0" style="max-width: 80px;">
+                            <input type="number" id="cantidad" class="form-control" placeholder="Cant. *" min="1" required style="max-width: 80px;" title="Ingrese la cantidad a agregar (mínimo 1)">
                             <button id="agregar-manual" class="btn btn-primary btn-action-mobile">
                                 <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Agregar</span>
                             </button>
@@ -1228,13 +1228,17 @@
             
             // Llenar el campo y agregar producto
             codigoManual.value = codigo;
-            const cantidad = parseInt(cantidadInput.value) || 0;
+            const cantidad = parseInt(cantidadInput.value);
             
             mostrarMensaje(`Código escaneado: ${codigo}`, 'success');
             
-            if (cantidad >= 0) {
-                agregarProducto(codigo, cantidad);
+            if (!cantidad || cantidad <= 0) {
+                mostrarMensaje('Debe ingresar una cantidad mayor a 0 antes de escanear', 'warning');
+                cantidadInput.focus();
+                return;
             }
+            
+            agregarProducto(codigo, cantidad);
             
             // Reiniciar scanner después de 1.5 segundos
             setTimeout(() => {
@@ -1372,9 +1376,10 @@
 
     // Agregar producto manualmente
     agregarManualBtn.addEventListener('click', () => {
-        const cantidad = parseInt(cantidadInput.value) || 0;
-        if (cantidad < 0) {
-            mostrarMensaje('La cantidad no puede ser negativa', 'danger');
+        const cantidad = parseInt(cantidadInput.value);
+        if (!cantidad || cantidad <= 0) {
+            mostrarMensaje('Debe ingresar una cantidad mayor a 0', 'danger');
+            cantidadInput.focus();
             return;
         }
         if (productoSeleccionadoId) {
@@ -1383,6 +1388,9 @@
             const busqueda = codigoManual.value.trim();
             if (busqueda) {
                 agregarProducto(busqueda, cantidad);
+            } else {
+                mostrarMensaje('Debe buscar un producto primero', 'danger');
+                codigoManual.focus();
             }
         }
     });
@@ -1403,6 +1411,14 @@
         }
     });
 
+    // Enter en el campo de cantidad
+    cantidadInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            agregarManualBtn.click();
+        }
+    });
+
     // Función para agregar producto por ID
     function agregarProductoPorId(productoId, cantidad) {
         fetch(`{% url 'conteo:agregar_item' conteo.pk %}`, {
@@ -1419,9 +1435,9 @@
                 mostrarMensaje(data.mensaje, 'success');
                 actualizarTabla(data.producto, data.producto.cantidad, data.item_id);
                 codigoManual.value = '';
-                cantidadInput.value = 0;
+                cantidadInput.value = '';
                 productoSeleccionadoId = null;
-                codigoManual.focus();
+                cantidadInput.focus();
             } else {
                 mostrarMensaje(data.error, 'danger');
             }
@@ -1448,7 +1464,8 @@
                 mostrarMensaje(data.mensaje, 'success');
                 // Actualizar tabla
                 actualizarTabla(data.producto, data.producto.cantidad, data.item_id);
-                cantidadInput.value = 0;
+                cantidadInput.value = '';
+                cantidadInput.focus();
             } else {
                 mostrarMensaje(data.error, 'danger');
             }

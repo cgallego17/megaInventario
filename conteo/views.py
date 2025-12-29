@@ -420,7 +420,12 @@ def buscar_producto(request):
 
 @login_required
 def finalizar_conteo(request, pk):
-    """Finaliza un conteo"""
+    """Finaliza un conteo - Solo administradores"""
+    # Verificar que el usuario sea administrador
+    if not (request.user.is_superuser or request.user.is_staff):
+        messages.error(request, 'No tienes permisos para finalizar conteos. Solo los administradores pueden realizar esta acción.')
+        return redirect('conteo:lista_conteos')
+    
     conteo = get_object_or_404(Conteo, pk=pk)
     
     if request.method == 'POST':

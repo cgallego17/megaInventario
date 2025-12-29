@@ -275,9 +275,11 @@
                                     <i class="bi bi-eye"></i> Ver
                                 </a>
                                 {% if conteo.estado == 'en_proceso' %}
-                                <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-sm btn-success">
-                                    <i class="bi bi-check-circle"></i> Finalizar
-                                </a>
+                                    {% if user.is_superuser or user.is_staff %}
+                                    <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-circle"></i> Finalizar
+                                    </a>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </div>
@@ -372,9 +374,11 @@
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         {% if conteo.estado == 'en_proceso' %}
-                                        <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-outline-success btn-sm" title="Finalizar">
-                                            <i class="bi bi-check-circle"></i>
-                                        </a>
+                                            {% if user.is_superuser or user.is_staff %}
+                                            <a href="{% url 'conteo:finalizar_conteo' conteo.pk %}" class="btn btn-outline-success btn-sm" title="Finalizar">
+                                                <i class="bi bi-check-circle"></i>
+                                            </a>
+                                            {% endif %}
                                         {% endif %}
                                     </div>
                                 </td>
