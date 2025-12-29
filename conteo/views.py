@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.db import transaction
 from django.db.models import Sum, Count, Q
 from .models import Conteo, ItemConteo
-from .forms import ConteoForm, ItemConteoForm
+from .forms import ConteoForm, ItemConteoForm, CompararConteosForm
 from productos.models import Producto
 from movimientos.models import MovimientoConteo
 from usuarios.models import ParejaConteo
@@ -462,4 +462,106 @@ def eliminar_item(request, item_id):
         return redirect('conteo:detalle_conteo', pk=conteo_id)
     
     return render(request, 'conteo/eliminar_item.html', {'item': item})
+
+
+@login_required
+def comparar_conteos(request):
+    """Compara múltiples conteos entre sí"""
+    if request.method == 'POST':
+        form = CompararConteosForm(request.POST)
+        if form.is_valid():
+            conteos_seleccionados = form.cleaned_data['conteos']
+            return redirect('conteo:detalle_comparacion', conteos_ids=','.join(str(c.id) for c in conteos_seleccionados))
+    else:
+        form = CompararConteosForm()
+    
+    return render(request, 'conteo/comparar_conteos.html', {'form': form})
+
+
+@login_required
+def detalle_comparacion(request, conteos_ids):
+    """Muestra el detalle de la comparación entre conteos"""
+    # Parsear IDs de conteos
+    try:
+        ids = [int(id_str) for id_str in conteos_ids.split(',')]
+        conteos = Conteo.objects.filter(id__in=ids, estado='finalizado').order_by('numero_conteo', '-fecha_fin')
+    except (ValueError, Conteo.DoesNotExist):
+        messages.error(request, 'Error al cargar los conteos seleccionados.')
+        return redirect('conteo:comparar_conteos')
+    
+    if conteos.count() < 2:
+        messages.error(request, 'Debe seleccionar al menos 2 conteos finalizados para comparar.')
+        return redirect('conteo:comparar_conteos')
+    
+    # Obtener todos los productos
+    productos = Producto.objects.all().order_by('marca', 'nombre')
+    
+    # Crear diccionario con cantidades por producto por conteo
+    comparacion_data = []
+    for producto in productos:
+        producto_data = {
+            'producto': producto,
+            'cantidades_por_conteo': [],  # Lista de tuplas (conteo_id, cantidad)
+            'total': 0,
+            'promedio': 0,
+            'maximo': 0,
+            'minimo': 0,
+            'diferencias': []  # Lista de diferencias
+        }
+        
+        cantidades = []
+        cantidades_por_conteo = []
+        for conteo in conteos:
+            item = ItemConteo.objects.filter(conteo=conteo, producto=producto).first()
+            cantidad = item.cantidad if item else 0
+            cantidades_por_conteo.append((conteo.id, cantidad))
+            cantidades.append(cantidad)
+        
+        producto_data['cantidades_por_conteo'] = cantidades_por_conteo
+        
+        if cantidades:
+            producto_data['total'] = sum(cantidades)
+            producto_data['promedio'] = sum(cantidades) / len(cantidades)
+            producto_data['maximo'] = max(cantidades)
+            producto_data['minimo'] = min(cantidades)
+            
+            # Calcular diferencias entre conteos
+            diferencias = []
+            for i, conteo1 in enumerate(conteos):
+                for j, conteo2 in enumerate(conteos):
+                    if i < j:
+                        diff = cantidades[i] - cantidades[j]
+                        if diff != 0:
+                            diferencias.append({
+                                'conteo1': conteo1.nombre,
+                                'conteo2': conteo2.nombre,
+                                'diferencia': diff
+                            })
+            producto_data['diferencias'] = diferencias
+        
+        comparacion_data.append(producto_data)
+    
+    # Estadísticas generales
+    productos_con_diferencias = sum(1 for p in comparacion_data if any(d != 0 for d in p['diferencias'].values()))
+    
+    total_items_por_conteo = {}
+    for conteo in conteos:
+        total_items = ItemConteo.objects.filter(conteo=conteo).count()
+        total_cantidad = ItemConteo.objects.filter(conteo=conteo).aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+        total_items_por_conteo[conteo.id] = {
+            'items': total_items,
+            'cantidad': total_cantidad,
+        }
+    
+    estadisticas = {
+        'total_productos': productos.count(),
+        'productos_con_diferencias': productos_con_diferencias,
+        'total_items_por_conteo': total_items_por_conteo,
+    }
+    
+    return render(request, 'conteo/detalle_comparacion.html', {
+        'conteos': conteos,
+        'comparacion_data': comparacion_data,
+        'estadisticas': estadisticas,
+    })
 

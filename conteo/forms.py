@@ -33,76 +33,61 @@ class ConteoForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        parejas = cleaned_data.get('parejas', [])
+        parejas = cleaned_data.get('parejas')
         usuario_1 = cleaned_data.get('usuario_1')
         usuario_2 = cleaned_data.get('usuario_2')
         
-        # Validar que se haya seleccionado al menos una pareja o usuarios manuales
-        if not parejas and (not usuario_1 or not usuario_2):
-            raise forms.ValidationError("Debe seleccionar al menos una pareja o ambos usuarios manualmente.")
-        
-        # Validar que los usuarios sean diferentes si se proporcionan manualmente
-        if usuario_1 and usuario_2 and usuario_1 == usuario_2:
-            raise forms.ValidationError("Los usuarios deben ser diferentes.")
+        # Si no hay parejas ni usuarios, mostrar error
+        if not parejas and not usuario_1 and not usuario_2:
+            raise forms.ValidationError('Debe seleccionar al menos una pareja o dos usuarios.')
         
         return cleaned_data
-    
-    def save(self, commit=True, usuario=None):
-        conteo = super().save(commit=False)
-        if commit:
-            # Si es una edición y hay usuario, actualizar usuario_modificador
-            if self.instance.pk and usuario:
-                conteo.usuario_modificador = usuario
-            conteo.save()
-            # Guardar las parejas (ManyToMany necesita guardarse después del objeto)
-            self.save_m2m()
-        return conteo
 
 
 class ItemConteoForm(forms.ModelForm):
-    codigo_barras = forms.CharField(
-        label="Código de Barras",
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'autofocus': True,
-            'placeholder': 'Escanee o ingrese el código de barras'
-        })
-    )
-    
     class Meta:
         model = ItemConteo
-        fields = ['cantidad']
+        fields = ['producto', 'cantidad']
         widgets = {
-            'cantidad': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0',
-                'value': '1'
-            }),
+            'producto': forms.Select(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
         }
     
     def __init__(self, *args, **kwargs):
-        self.sesion = kwargs.pop('sesion', None)
         super().__init__(*args, **kwargs)
+        # Mostrar todos los productos (activos e inactivos)
+        self.fields['producto'].queryset = Producto.objects.all().order_by('nombre')
     
-    def clean_codigo_barras(self):
-        codigo_barras = self.cleaned_data.get('codigo_barras')
-        if codigo_barras:
-            try:
-                # Buscar todos los productos (activos e inactivos)
-                producto = Producto.objects.get(codigo_barras=codigo_barras)
-                return producto
-            except Producto.DoesNotExist:
-                raise forms.ValidationError(f"Producto con código {codigo_barras} no encontrado")
-        return None
+    def clean_cantidad(self):
+        cantidad = self.cleaned_data.get('cantidad')
+        if cantidad < 0:
+            raise forms.ValidationError('La cantidad no puede ser negativa.')
+        return cantidad
     
     def save(self, commit=True):
         item = super().save(commit=False)
-        producto = self.cleaned_data.get('codigo_barras')
-        if producto:
-            item.producto = producto
-        if self.sesion:
-            item.sesion = self.sesion
         if commit:
             item.save()
         return item
 
+
+class CompararConteosForm(forms.Form):
+    """Formulario para seleccionar conteos a comparar"""
+    conteos = forms.ModelMultipleChoiceField(
+        queryset=Conteo.objects.filter(estado='finalizado').order_by('numero_conteo', '-fecha_fin'),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        label='Seleccionar Conteos',
+        help_text='Seleccione al menos 2 conteos finalizados para comparar. Puede seleccionar múltiples conteos.',
+        required=True
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filtrar solo conteos finalizados
+        self.fields['conteos'].queryset = Conteo.objects.filter(estado='finalizado').order_by('numero_conteo', '-fecha_fin')
+    
+    def clean_conteos(self):
+        conteos = self.cleaned_data.get('conteos')
+        if len(conteos) < 2:
+            raise forms.ValidationError('Debe seleccionar al menos 2 conteos para comparar.')
+        return conteos

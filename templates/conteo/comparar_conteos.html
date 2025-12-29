@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Comparar Conteos - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-bar-chart"></i> Comparar Conteos
+        </h1>
+        <a href="{% url 'conteo:lista_conteos' %}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-list-check"></i> Seleccionar Conteos a Comparar</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.conteos.queryset.exists %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Seleccione al menos 2 conteos finalizados para comparar sus resultados.
+                    </div>
+                    
+                    <div class="row">
+                        {% for conteo in form.conteos.queryset %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="conteos" value="{{ conteo.id }}" id="conteo_{{ conteo.id }}">
+                                            <label class="form-check-label w-100" for="conteo_{{ conteo.id }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="mb-1">
+                                                            {{ conteo.nombre }}
+                                                            <span class="badge bg-{{ conteo.estado|yesno:'success,warning,danger' }}">
+                                                                {{ conteo.get_estado_display }}
+                                                            </span>
+                                                        </h6>
+                                                        <p class="mb-1 small text-muted">
+                                                            <i class="bi bi-hash"></i> Conteo {{ conteo.numero_conteo }}
+                                                        </p>
+                                                        {% if conteo.parejas.all %}
+                                                            <p class="mb-1 small">
+                                                                {% for pareja in conteo.parejas.all %}
+                                                                    <span class="badge bg-{{ pareja.color }} me-1">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                                                {% endfor %}
+                                                            </p>
+                                                        {% endif %}
+                                                        <p class="mb-0 small text-muted">
+                                                            <i class="bi bi-calendar"></i> {{ conteo.fecha_fin|date:"d/m/Y H:i"|default:"N/A" }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="seleccionarTodos()">Seleccionar Todos</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deseleccionarTodos()">Deseleccionar Todos</button>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-bar-chart"></i> Comparar Conteos Seleccionados
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> No hay conteos finalizados disponibles para comparar. 
+                        <a href="{% url 'conteo:lista_conteos' %}">Ver conteos</a>
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function seleccionarTodos() {
+    document.querySelectorAll('input[name="conteos"]').forEach(cb => cb.checked = true);
+}
+
+function deseleccionarTodos() {
+    document.querySelectorAll('input[name="conteos"]').forEach(cb => cb.checked = false);
+}
+
+// Validar que se seleccionen al menos 2 conteos
+document.querySelector('form').addEventListener('submit', function(e) {
+    const seleccionados = document.querySelectorAll('input[name="conteos"]:checked').length;
+    if (seleccionados < 2) {
+        e.preventDefault();
+        alert('Debe seleccionar al menos 2 conteos para comparar.');
+        return false;
+    }
+});
+</script>
+{% endblock %}
+

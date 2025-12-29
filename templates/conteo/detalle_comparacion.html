@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Comparación de Conteos - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-bar-chart"></i> Comparación de Conteos
+        </h1>
+        <div>
+            <a href="{% url 'conteo:comparar_conteos' %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Nueva Comparación
+            </a>
+            <a href="{% url 'conteo:lista_conteos' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-list"></i> Lista de Conteos
+            </a>
+        </div>
+    </div>
+
+    <!-- Información de Conteos -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Conteos Comparados</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for conteo in conteos %}
+                    <div class="col-md-4 mb-2">
+                        <div class="card border">
+                            <div class="card-body p-2">
+                                <h6 class="mb-1">
+                                    {{ conteo.nombre }}
+                                    <span class="badge bg-success">{{ conteo.get_numero_conteo_display }}</span>
+                                </h6>
+                                <p class="mb-1 small text-muted">
+                                    <i class="bi bi-calendar"></i> {{ conteo.fecha_fin|date:"d/m/Y H:i" }}
+                                </p>
+                                <p class="mb-0 small">
+                                    {% for key, value in estadisticas.total_items_por_conteo.items %}
+                                        {% if key == conteo.id %}
+                                            <strong>Items:</strong> {{ value.items }}
+                                            | <strong>Total:</strong> {{ value.cantidad|intcomma }}
+                                        {% endif %}
+                                    {% endfor %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Total Productos</h6>
+                    <h3 class="mb-0 text-primary">{{ estadisticas.total_productos }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Productos con Diferencias</h6>
+                    <h3 class="mb-0 text-warning">{{ estadisticas.productos_con_diferencias }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Conteos Comparados</h6>
+                    <h3 class="mb-0 text-success">{{ conteos.count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Comparación -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-table"></i> Detalle de Comparación</h5>
+            <div>
+                <input type="text" id="filtro-comparacion" class="form-control form-control-sm" placeholder="Buscar producto..." style="width: 250px;">
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0" id="tabla-comparacion">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 60px;">Img</th>
+                            <th style="min-width: 200px;">Producto</th>
+                            <th style="min-width: 120px;">Código</th>
+                            <th style="min-width: 100px;">Marca</th>
+                            {% for conteo in conteos %}
+                                <th class="text-center" style="min-width: 120px;">
+                                    {{ conteo.nombre }}<br>
+                                    <small class="text-muted">({{ conteo.get_numero_conteo_display }})</small>
+                                </th>
+                            {% endfor %}
+                            <th class="text-center" style="min-width: 100px;">Total</th>
+                            <th class="text-center" style="min-width: 100px;">Promedio</th>
+                            <th class="text-center" style="min-width: 100px;">Máx</th>
+                            <th class="text-center" style="min-width: 100px;">Mín</th>
+                            <th class="text-center" style="min-width: 150px;">Diferencias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in comparacion_data %}
+                            {% with producto=data.producto %}
+                            <tr class="fila-producto" data-nombre="{{ producto.nombre|lower }}" data-codigo="{{ producto.codigo_barras|lower }}" data-marca="{{ producto.marca|lower|default:'' }}">
+                                <td>
+                                    {% if producto.imagen %}
+                                        <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                    {% else %}
+                                        <div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px;">
+                                            <i class="bi bi-image text-muted" style="font-size: 0.75rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 200px;" title="{{ producto.nombre }}">
+                                        {{ producto.nombre }}
+                                        {% if producto.atributo %}
+                                            <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">{{ producto.atributo }}</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td><small>{{ producto.codigo_barras }}</small></td>
+                                <td>
+                                    {% if producto.marca %}
+                                        <span class="badge bg-info" style="font-size: 0.75rem;">{{ producto.marca }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                {% for conteo in conteos %}
+                                    <td class="text-center">
+                                        {% for conteo_id, cantidad in data.cantidades_por_conteo %}
+                                            {% if conteo_id == conteo.id %}
+                                                <span class="badge bg-primary">{{ cantidad }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                {% endfor %}
+                                <td class="text-center">
+                                    <strong>{{ data.total }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ data.promedio|floatformat:1 }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">{{ data.maximo }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning">{{ data.minimo }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if data.diferencias %}
+                                        {% for diff_data in data.diferencias %}
+                                            <span class="badge {% if diff_data.diferencia > 0 %}bg-danger{% else %}bg-secondary{% endif %}" style="font-size: 0.7rem;" title="Diferencia: {{ diff_data.conteo1 }} vs {{ diff_data.conteo2 }}">
+                                                {{ diff_data.diferencia|floatformat:0 }}
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted small">Sin diferencias</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filtro de búsqueda
+document.getElementById('filtro-comparacion').addEventListener('input', function(e) {
+    const filtro = e.target.value.toLowerCase();
+    const filas = document.querySelectorAll('.fila-producto');
+    
+    filas.forEach(fila => {
+        const nombre = fila.dataset.nombre;
+        const codigo = fila.dataset.codigo;
+        const marca = fila.dataset.marca;
+        
+        if (nombre.includes(filtro) || codigo.includes(filtro) || marca.includes(filtro)) {
+            fila.style.display = '';
+        } else {
+            fila.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}
+
