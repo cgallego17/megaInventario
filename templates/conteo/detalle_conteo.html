@@ -1905,9 +1905,12 @@
     if (buscarPendientes) {
         buscarPendientes.addEventListener('input', function(e) {
             const busqueda = e.target.value.toLowerCase().trim();
-            const filas = document.querySelectorAll('#tbody-pendientes tr');
+            const filas = document.querySelectorAll('#tbody-pendientes tr.producto-pendiente-row');
+            const cards = document.querySelectorAll('#pendientes-mobile .producto-pendiente-row');
             
             let visibleCount = 0;
+            
+            // Filtrar filas de la tabla desktop
             filas.forEach(fila => {
                 const texto = fila.textContent.toLowerCase();
                 if (texto.includes(busqueda)) {
@@ -1915,6 +1918,17 @@
                     visibleCount++;
                 } else {
                     fila.style.display = 'none';
+                }
+            });
+            
+            // Filtrar cards móviles
+            cards.forEach(card => {
+                const texto = card.textContent.toLowerCase();
+                if (texto.includes(busqueda)) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
                 }
             });
             
