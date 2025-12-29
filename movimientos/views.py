@@ -21,6 +21,7 @@ def lista_movimientos(request):
     usuario_id = request.GET.get('usuario')
     producto_id = request.GET.get('producto')
     tipo = request.GET.get('tipo')
+    marca_filtro = request.GET.get('marca', '').strip()
     fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
     busqueda = request.GET.get('busqueda', '').strip()
@@ -38,6 +39,8 @@ def lista_movimientos(request):
         movimientos = movimientos.filter(producto_id=producto_id)
     if tipo:
         movimientos = movimientos.filter(tipo=tipo)
+    if marca_filtro:
+        movimientos = movimientos.filter(producto__marca__iexact=marca_filtro)
     if fecha_inicio:
         movimientos = movimientos.filter(fecha_movimiento__gte=fecha_inicio)
     if fecha_fin:
@@ -73,6 +76,7 @@ def lista_movimientos(request):
     conteos = Conteo.objects.all().order_by('-fecha_inicio')
     usuarios = User.objects.filter(movimientoconteo__isnull=False).distinct().order_by('username')
     productos = Producto.objects.filter(movimientoconteo__isnull=False).distinct().order_by('nombre')
+    marcas = Producto.objects.filter(movimientoconteo__isnull=False).exclude(marca__isnull=True).exclude(marca='').values_list('marca', flat=True).distinct().order_by('marca')
     
     return render(request, 'movimientos/lista.html', {
         'page_obj': page_obj,
@@ -85,11 +89,13 @@ def lista_movimientos(request):
         'usuarios': usuarios,
         'productos': productos,
         'mostrar_eliminados': mostrar_eliminados,
+        'marcas': marcas,
         'filtros': {
             'conteo': conteo_id,
             'usuario': usuario_id,
             'producto': producto_id,
             'tipo': tipo,
+            'marca': marca_filtro,
             'fecha_inicio': fecha_inicio,
             'fecha_fin': fecha_fin,
             'busqueda': busqueda,

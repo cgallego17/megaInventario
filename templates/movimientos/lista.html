@@ -176,6 +176,15 @@
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label small">Marca:</label>
+                            <select name="marca" class="form-select form-select-sm">
+                                <option value="">Todas las marcas</option>
+                                {% for marca in marcas %}
+                                <option value="{{ marca }}" {% if filtros.marca == marca %}selected{% endif %}>{{ marca }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label small">Producto:</label>
                             <select name="producto" class="form-select form-select-sm">
                                 <option value="">Todos los productos</option>
@@ -317,12 +326,12 @@
         <ul class="pagination pagination-sm justify-content-center">
             {% if page_obj.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page=1{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
+                <a class="page-link" href="?page=1{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.marca %}&marca={{ filtros.marca }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
                     <i class="bi bi-chevron-double-left"></i>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.marca %}&marca={{ filtros.marca }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
                     <i class="bi bi-chevron-left"></i>
                 </a>
             </li>
@@ -334,12 +343,12 @@
             
             {% if page_obj.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.marca %}&marca={{ filtros.marca }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
                     <i class="bi bi-chevron-right"></i>
                 </a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtros.conteo %}&conteo={{ filtros.conteo }}{% endif %}{% if filtros.usuario %}&usuario={{ filtros.usuario }}{% endif %}{% if filtros.producto %}&producto={{ filtros.producto }}{% endif %}{% if filtros.tipo %}&tipo={{ filtros.tipo }}{% endif %}{% if filtros.marca %}&marca={{ filtros.marca }}{% endif %}{% if filtros.busqueda %}&busqueda={{ filtros.busqueda }}{% endif %}{% if filtros.fecha_inicio %}&fecha_inicio={{ filtros.fecha_inicio }}{% endif %}{% if filtros.fecha_fin %}&fecha_fin={{ filtros.fecha_fin }}{% endif %}">
                     <i class="bi bi-chevron-double-right"></i>
                 </a>
             </li>
