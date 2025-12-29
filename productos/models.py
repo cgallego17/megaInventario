@@ -1,6 +1,4 @@
 from django.db import models
-from django.db.models import Sum
-from django.core.validators import MinValueValidator
 
 
 class Producto(models.Model):
@@ -18,6 +16,13 @@ class Producto(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
     fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Actualización")
     activo = models.BooleanField(default=True, verbose_name="Activo")
+    parejas_asignadas = models.ManyToManyField(
+        'usuarios.ParejaConteo',
+        related_name='productos_asignados',
+        blank=True,
+        verbose_name="Parejas Asignadas",
+        help_text="Parejas de conteo asignadas para contar este producto"
+    )
 
     class Meta:
         verbose_name = "Producto"

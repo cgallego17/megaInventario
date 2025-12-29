@@ -15,3 +15,4 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'megaInventario.settings')
 
 application = get_asgi_application()
 
+

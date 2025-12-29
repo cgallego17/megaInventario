@@ -28,3 +28,4 @@ def formato_precio(value):
     except (ValueError, TypeError):
         return "0,00"
 
+

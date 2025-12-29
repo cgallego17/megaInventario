@@ -46,3 +46,4 @@
 Todos los lugares del sistema están configurados para mostrar todos los productos (activos e inactivos), excepto:
 - Un filtro opcional en `productos/views.py` que el usuario puede activar manualmente
 
+

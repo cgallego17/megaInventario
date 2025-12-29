@@ -761,11 +761,27 @@
         <div class="col-12">
             <div class="card border-0 shadow-sm mb-2" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                 <div class="card-body py-2 stats-card-mobile">
+                    {% if parejas_usuario.exists %}
+                        {% with productos_asignados_count=productos_asignados.count %}
+                            {% if productos_asignados_count > 0 %}
+                                <div class="alert alert-info py-2 mb-2" style="font-size: 0.85rem;">
+                                    <i class="bi bi-info-circle"></i> <strong>Productos asignados:</strong>
+                                    {% for pareja in parejas_usuario %}
+                                        <span class="badge bg-{{ pareja.color }} me-1">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
                     <div class="row text-center">
                         <div class="col-6 col-md-6 border-end border-md-end">
                             <small class="text-muted d-block mb-1">Items Contados</small>
                             <strong class="fs-5 text-primary d-block">{{ total_items }}</strong>
-                            <small class="text-muted d-block mt-1">de {{ total_productos }}</small>
+                            {% if parejas_usuario.exists and productos_asignados.exists %}
+                                <small class="text-muted d-block mt-1">de {{ total_productos }} asignados</small>
+                            {% else %}
+                                <small class="text-muted d-block mt-1">de {{ total_productos }} productos</small>
+                            {% endif %}
                         </div>
                         <div class="col-6 col-md-6">
                             <small class="text-muted d-block mb-1">Cantidad Total</small>
@@ -793,6 +809,15 @@
                             </div>
                         </div>
                     </div>
+                    {% if parejas_usuario.exists %}
+                        {% with productos_asignados_count=productos_asignados.count %}
+                            {% if productos_asignados_count == 0 %}
+                                <div class="alert alert-info py-2 mt-2 mb-0" style="font-size: 0.85rem;">
+                                    <i class="bi bi-info-circle"></i> <strong>No hay productos asignados a sus parejas.</strong> Puede contar todos los productos disponibles.
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -802,15 +827,24 @@
         <!-- Scanner colapsable -->
         <div class="col-12">
             <div class="card mb-2">
-                <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center" style="cursor: pointer;" onclick="toggleScanner()">
+                <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0"><i class="bi bi-camera"></i> Scanner y Búsqueda</h6>
-                    <i class="bi bi-chevron-down" id="scanner-toggle-icon"></i>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#modalEstadoConteo" title="Ver estado de conteo">
+                            <i class="bi bi-check-circle"></i> Estado
+                        </button>
+                        <i class="bi bi-chevron-down" id="scanner-toggle-icon" style="cursor: pointer;" onclick="toggleScanner()"></i>
+                    </div>
                 </div>
                 <div class="card-body scanner-section-mobile" id="scanner-section">
                     <!-- Búsqueda rápida siempre visible -->
                     <div class="mb-2 position-relative">
                         <div class="input-group input-group-sm">
-                            <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar producto..." autofocus>
+                            {% if parejas_usuario.exists and productos_asignados.exists %}
+                                <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar producto asignado..." autofocus>
+                            {% else %}
+                                <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar producto..." autofocus>
+                            {% endif %}
                             <input type="number" id="cantidad" class="form-control" placeholder="Cant." value="0" min="0" style="max-width: 80px;">
                             <button id="agregar-manual" class="btn btn-primary btn-action-mobile">
                                 <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Agregar</span>
@@ -850,8 +884,20 @@
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                    <h6 class="mb-0"><i class="bi bi-list-ul"></i> Items <span class="badge bg-primary">{{ total_items }}</span></h6>
-                    <small class="text-muted">Total: <strong>{{ total_cantidad }}</strong></small>
+                    <div class="d-flex align-items-center gap-2">
+                        <h6 class="mb-0"><i class="bi bi-list-ul"></i> Items <span class="badge bg-primary" id="items-count">{{ total_items }}</span></h6>
+                        {% if es_admin %}
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="btn-ver-pareja" onclick="mostrarItemsPareja()">
+                                    <i class="bi bi-people"></i> Mi Pareja
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" id="btn-ver-todos" onclick="mostrarItemsTodos()">
+                                    <i class="bi bi-globe"></i> Todos
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">Total: <strong id="items-total">{{ total_cantidad }}</strong></small>
                 </div>
                 <div class="card-body p-1">
                     <!-- Vista de tabla para desktop - Ultra compacta -->
@@ -894,6 +940,37 @@
                                         </td>
                                     </tr>
                                     {% endfor %}
+                                    {% if es_admin and items_otros %}
+                                        {% for item in items_otros %}
+                                            <tr id="item-{{ item.id }}" class="item-row item-todos" style="display: none; cursor: pointer;" onclick="this.querySelector('.eliminar-item')?.click()">
+                                                <td style="padding: 0.3rem;">
+                                                    {% if item.producto.imagen %}
+                                                        <img src="{{ item.producto.imagen.url }}" alt="{{ item.producto.nombre }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                                    {% else %}
+                                                        <div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px;">
+                                                            <i class="bi bi-image text-muted" style="font-size: 0.75rem;"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td style="padding: 0.4rem;"><small class="text-muted">{{ item.producto.codigo_barras|truncatechars:12 }}</small></td>
+                                                <td style="padding: 0.4rem;">
+                                                    {{ item.producto.nombre|truncatewords:3 }}
+                                                    {% if item.producto.atributo %}
+                                                        <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">{{ item.producto.atributo }}</span>
+                                                    {% endif %}
+                                                    <small class="text-muted d-block" style="font-size: 0.7rem;">
+                                                        <i class="bi bi-person"></i> {{ item.usuario_conteo.username|default:"N/A" }}
+                                                    </small>
+                                                </td>
+                                                <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-success">{{ item.cantidad }}</span></td>
+                                                <td style="padding: 0.2rem;" class="text-center">
+                                                    <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="{{ item.id }}" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                        <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>
@@ -903,7 +980,7 @@
                     <div class="items-mobile d-md-none" id="items-mobile">
                         <div class="item-list" style="max-height: 50vh;">
                             {% for item in items %}
-                            <div class="item-card-compact" id="item-mobile-{{ item.id }}">
+                            <div class="item-card-compact item-pareja" id="item-mobile-{{ item.id }}">
                                 <div class="d-flex justify-content-between align-items-center p-2" style="border-bottom: 1px solid #e9ecef;">
                                     <div class="d-flex align-items-center gap-2" style="flex: 1; min-width: 0;">
                                         {% if item.producto.imagen %}
@@ -1266,10 +1343,10 @@
                             <h6 class="mb-1">
                                 ${producto.nombre}
                                 ${producto.atributo ? `<span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">${producto.atributo}</span>` : ''}
+                                ${producto.marca ? `<span class="badge bg-info ms-1" style="font-size: 0.7rem;">${producto.marca}</span>` : ''}
                             </h6>
                             <small>${producto.codigo_barras}</small>
                         </div>
-                        <p class="mb-1 small text-muted">${producto.categoria || 'Sin categoría'}</p>
                     </div>
                 </div>
             `;
@@ -1531,6 +1608,175 @@
             }
         }
     });
+
+    {% if es_admin %}
+    // Funciones para alternar entre vista de pareja y todos (solo para admin)
+    function mostrarItemsPareja() {
+        document.querySelectorAll('.item-todos').forEach(row => row.style.display = 'none');
+        document.querySelectorAll('.item-pareja').forEach(row => row.style.display = '');
+        document.getElementById('items-count').textContent = '{{ total_items }}';
+        document.getElementById('items-total').textContent = '{{ total_cantidad }}';
+        document.getElementById('btn-ver-pareja').classList.add('active');
+        document.getElementById('btn-ver-todos').classList.remove('active');
+    }
+
+    function mostrarItemsTodos() {
+        document.querySelectorAll('.item-todos').forEach(row => row.style.display = '');
+        document.querySelectorAll('.item-pareja').forEach(row => row.style.display = '');
+        document.getElementById('items-count').textContent = '{{ total_items_todos }}';
+        document.getElementById('items-total').textContent = '{{ total_cantidad_todos }}';
+        document.getElementById('btn-ver-pareja').classList.remove('active');
+        document.getElementById('btn-ver-todos').classList.add('active');
+    }
+
+    // Inicializar con vista de pareja
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('btn-ver-pareja')) {
+            document.getElementById('btn-ver-pareja').classList.add('active');
+        }
+    });
+    {% endif %}
 </script>
+
+<!-- Modal Estado de Conteo -->
+<div class="modal fade" id="modalEstadoConteo" tabindex="-1" aria-labelledby="modalEstadoConteoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalEstadoConteoLabel">
+                    <i class="bi bi-check-circle"></i> Estado de Conteo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="contados-tab" data-bs-toggle="tab" data-bs-target="#contados" type="button" role="tab">
+                            <i class="bi bi-check-circle-fill text-success"></i> Contados 
+                            <span class="badge bg-success">{{ total_items }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="no-contados-tab" data-bs-toggle="tab" data-bs-target="#no-contados" type="button" role="tab">
+                            <i class="bi bi-x-circle-fill text-danger"></i> Pendientes 
+                            <span class="badge bg-danger">{{ productos_no_contados.count }}</span>
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="contados" role="tabpanel">
+                        {% if items %}
+                            <div class="table-responsive" style="max-height: 50vh;">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 60px;">Img</th>
+                                            <th>Código</th>
+                                            <th>Producto</th>
+                                            <th>Marca</th>
+                                            <th class="text-center">Cantidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in items %}
+                                            <tr>
+                                                <td>
+                                                    {% if item.producto.imagen %}
+                                                        <img src="{{ item.producto.imagen.url }}" alt="{{ item.producto.nombre }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                                    {% else %}
+                                                        <div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px;">
+                                                            <i class="bi bi-image text-muted" style="font-size: 0.75rem;"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td><small>{{ item.producto.codigo_barras }}</small></td>
+                                                <td>
+                                                    {{ item.producto.nombre }}
+                                                    {% if item.producto.atributo %}
+                                                        <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">{{ item.producto.atributo }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if item.producto.marca %}
+                                                        <span class="badge bg-info" style="font-size: 0.75rem;">{{ item.producto.marca }}</span>
+                                                    {% else %}
+                                                        <span class="text-muted small">-</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-success">{{ item.cantidad }}</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle"></i> No hay productos contados aún.
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="tab-pane fade" id="no-contados" role="tabpanel">
+                        {% if productos_no_contados %}
+                            <div class="table-responsive" style="max-height: 50vh;">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 60px;">Img</th>
+                                            <th>Código</th>
+                                            <th>Producto</th>
+                                            <th>Marca</th>
+                                            <th class="text-center">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for producto in productos_no_contados %}
+                                            <tr>
+                                                <td>
+                                                    {% if producto.imagen %}
+                                                        <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                                    {% else %}
+                                                        <div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px;">
+                                                            <i class="bi bi-image text-muted" style="font-size: 0.75rem;"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td><small>{{ producto.codigo_barras }}</small></td>
+                                                <td>
+                                                    {{ producto.nombre }}
+                                                    {% if producto.atributo %}
+                                                        <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">{{ producto.atributo }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if producto.marca %}
+                                                        <span class="badge bg-info" style="font-size: 0.75rem;">{{ producto.marca }}</span>
+                                                    {% else %}
+                                                        <span class="text-muted small">-</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-danger">Pendiente</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-success mb-0">
+                                <i class="bi bi-check-circle"></i> ¡Todos los productos han sido contados!
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 

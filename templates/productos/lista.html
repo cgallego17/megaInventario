@@ -21,6 +21,9 @@
             <a href="{% url 'productos:exportar' %}" class="btn btn-info btn-sm">
                 <i class="bi bi-download"></i> Exportar
             </a>
+            <a href="{% url 'productos:asignar_multiples_parejas' %}" class="btn btn-warning btn-sm">
+                <i class="bi bi-people-fill"></i> Asignar Múltiples
+            </a>
         </div>
     </div>
 
@@ -196,6 +199,9 @@
                                     </a>
                                     <a href="{% url 'productos:editar' producto.pk %}" class="btn btn-outline-warning btn-sm" title="Editar">
                                         <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'productos:asignar_pareja' producto.pk %}" class="btn btn-outline-primary btn-sm" title="Asignar Pareja">
+                                        <i class="bi bi-people"></i>
                                     </a>
                                     <a href="{% url 'productos:eliminar' producto.pk %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
                                         <i class="bi bi-trash"></i>

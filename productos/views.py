@@ -12,6 +12,7 @@ from io import BytesIO
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .models import Producto
 from .forms import ProductoForm, ImportarProductosForm, ImportarProductosAPIForm
+from usuarios.models import ParejaConteo
 
 
 @login_required
@@ -338,6 +339,166 @@ def detalle_producto(request, pk):
     """Muestra el detalle de un producto"""
     producto = get_object_or_404(Producto, pk=pk)
     return render(request, 'productos/detalle.html', {'producto': producto})
+
+
+@login_required
+def asignar_pareja(request, pk):
+    """Asigna o desasigna un producto a una pareja de conteo"""
+    producto = get_object_or_404(Producto, pk=pk)
+    
+    if request.method == 'POST':
+        pareja_id = request.POST.get('pareja_id')
+        accion = request.POST.get('accion')  # 'asignar' o 'desasignar'
+        
+        if pareja_id:
+            try:
+                pareja = ParejaConteo.objects.get(pk=pareja_id, activa=True)
+                
+                if accion == 'asignar':
+                    producto.parejas_asignadas.add(pareja)
+                    messages.success(request, f'Producto "{producto.nombre}" asignado a la pareja {pareja}.')
+                elif accion == 'desasignar':
+                    producto.parejas_asignadas.remove(pareja)
+                    messages.success(request, f'Producto "{producto.nombre}" desasignado de la pareja {pareja}.')
+                else:
+                    # Toggle: si está asignado, desasignar; si no, asignar
+                    if producto.parejas_asignadas.filter(pk=pareja_id).exists():
+                        producto.parejas_asignadas.remove(pareja)
+                        messages.success(request, f'Producto "{producto.nombre}" desasignado de la pareja {pareja}.')
+                    else:
+                        producto.parejas_asignadas.add(pareja)
+                        messages.success(request, f'Producto "{producto.nombre}" asignado a la pareja {pareja}.')
+                        
+            except ParejaConteo.DoesNotExist:
+                messages.error(request, 'La pareja seleccionada no existe o no está activa.')
+        else:
+            messages.error(request, 'Debe seleccionar una pareja.')
+    
+    # Obtener todas las parejas activas
+    parejas_activas = ParejaConteo.objects.filter(activa=True).order_by('usuario_1__username', 'usuario_2__username')
+    parejas_asignadas = producto.parejas_asignadas.all()
+    
+    return render(request, 'productos/asignar_pareja.html', {
+        'producto': producto,
+        'parejas_activas': parejas_activas,
+        'parejas_asignadas': parejas_asignadas,
+    })
+
+
+@login_required
+def asignar_multiples_parejas(request):
+    """Asigna múltiples productos a parejas de conteo"""
+    from django.core.paginator import Paginator
+    
+    # Obtener todas las parejas activas
+    parejas_activas = ParejaConteo.objects.filter(activa=True).order_by('usuario_1__username', 'usuario_2__username')
+    
+    if request.method == 'POST':
+        producto_ids = request.POST.getlist('productos')
+        pareja_ids = request.POST.getlist('parejas')
+        accion = request.POST.get('accion')  # 'asignar' o 'desasignar'
+        
+        if not producto_ids:
+            messages.error(request, 'Debe seleccionar al menos un producto.')
+        elif not pareja_ids:
+            messages.error(request, 'Debe seleccionar al menos una pareja.')
+        else:
+            productos = Producto.objects.filter(id__in=producto_ids)
+            parejas = ParejaConteo.objects.filter(id__in=pareja_ids, activa=True)
+            
+            if not parejas.exists():
+                messages.error(request, 'No se encontraron parejas válidas.')
+            else:
+                productos_procesados = 0
+                with transaction.atomic():
+                    for producto in productos:
+                        for pareja in parejas:
+                            if accion == 'asignar':
+                                producto.parejas_asignadas.add(pareja)
+                            elif accion == 'desasignar':
+                                producto.parejas_asignadas.remove(pareja)
+                        productos_procesados += 1
+                
+                if accion == 'asignar':
+                    messages.success(request, f'{productos_procesados} producto(s) asignado(s) a {parejas.count()} pareja(s).')
+                else:
+                    messages.success(request, f'{productos_procesados} producto(s) desasignado(s) de {parejas.count()} pareja(s).')
+    
+    # Obtener productos con paginación y filtros
+    productos = Producto.objects.all()
+    
+    # Filtros de búsqueda
+    busqueda = request.GET.get('busqueda', '').strip()
+    if busqueda:
+        try:
+            busqueda_id = int(busqueda)
+            productos = productos.filter(
+                Q(id=busqueda_id) |
+                Q(codigo_barras__icontains=busqueda) |
+                Q(codigo_barras__iexact=busqueda) |
+                Q(codigo__icontains=busqueda) |
+                Q(nombre__icontains=busqueda) |
+                Q(marca__icontains=busqueda) |
+                Q(atributo__icontains=busqueda)
+            )
+        except ValueError:
+            productos = productos.filter(
+                Q(codigo_barras__icontains=busqueda) |
+                Q(codigo_barras__iexact=busqueda) |
+                Q(codigo__icontains=busqueda) |
+                Q(nombre__icontains=busqueda) |
+                Q(marca__icontains=busqueda) |
+                Q(atributo__icontains=busqueda)
+            )
+    
+    # Filtros adicionales
+    marca_filtro = request.GET.get('marca', '').strip()
+    if marca_filtro:
+        productos = productos.filter(marca__icontains=marca_filtro)
+    
+    categoria_filtro = request.GET.get('categoria', '').strip()
+    if categoria_filtro:
+        productos = productos.filter(categoria__icontains=categoria_filtro)
+    
+    atributo_filtro = request.GET.get('atributo', '').strip()
+    if atributo_filtro:
+        productos = productos.filter(atributo__icontains=atributo_filtro)
+    
+    # Ordenamiento
+    orden = request.GET.get('orden', 'marca')
+    orden_opciones = {
+        'nombre': 'nombre',
+        '-nombre': '-nombre',
+        'marca': 'marca',
+        '-marca': '-marca',
+    }
+    if orden in orden_opciones:
+        productos = productos.order_by(orden_opciones[orden], 'nombre')
+    else:
+        productos = productos.order_by('marca', 'nombre')
+    
+    # Obtener valores únicos para los filtros
+    marcas = Producto.objects.exclude(marca__isnull=True).exclude(marca='').values_list('marca', flat=True).distinct().order_by('marca')
+    categorias = Producto.objects.exclude(categoria__isnull=True).exclude(categoria='').values_list('categoria', flat=True).distinct().order_by('categoria')
+    atributos = Producto.objects.exclude(atributo__isnull=True).exclude(atributo='').values_list('atributo', flat=True).distinct().order_by('atributo')
+    
+    # Paginación
+    paginator = Paginator(productos, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'productos/asignar_multiples_parejas.html', {
+        'page_obj': page_obj,
+        'parejas_activas': parejas_activas,
+        'busqueda': busqueda,
+        'marca_filtro': marca_filtro,
+        'categoria_filtro': categoria_filtro,
+        'atributo_filtro': atributo_filtro,
+        'orden': orden,
+        'marcas': marcas,
+        'categorias': categorias,
+        'atributos': atributos,
+    })
 
 
 @login_required

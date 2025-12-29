@@ -10,3 +10,4 @@ urlpatterns = [
     path('usuario/<int:usuario_id>/', views.movimientos_por_usuario, name='por_usuario'),
 ]
 
+

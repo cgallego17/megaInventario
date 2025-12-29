@@ -13,5 +13,7 @@ urlpatterns = [
     path('importar-api/', views.importar_productos_api, name='importar_api'),
     path('exportar/', views.exportar_productos, name='exportar'),
     path('descargar-plantilla/', views.descargar_plantilla_importacion, name='descargar_plantilla'),
+    path('<int:pk>/asignar-pareja/', views.asignar_pareja, name='asignar_pareja'),
+    path('asignar-multiples-parejas/', views.asignar_multiples_parejas, name='asignar_multiples_parejas'),
 ]
 

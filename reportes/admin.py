@@ -9,3 +9,4 @@ class ReporteAdmin(admin.ModelAdmin):
     search_fields = ['nombre', 'usuario__username']
     readonly_fields = ['fecha_creacion']
 
+

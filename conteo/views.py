@@ -8,6 +8,7 @@ from .models import Conteo, ItemConteo
 from .forms import ConteoForm, ItemConteoForm
 from productos.models import Producto
 from movimientos.models import MovimientoConteo
+from usuarios.models import ParejaConteo
 
 
 @login_required
@@ -70,25 +71,98 @@ def crear_conteo(request):
 def detalle_conteo(request, pk):
     """Detalle de conteo con scanner"""
     conteo = get_object_or_404(Conteo, pk=pk)
-    items = conteo.items.all().select_related('producto')
     
-    # Estadísticas
-    total_items = items.count()
-    total_cantidad = items.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+    # Obtener parejas del usuario (donde es usuario_1 o usuario_2)
+    parejas_usuario = ParejaConteo.objects.filter(
+        Q(usuario_1=request.user) | Q(usuario_2=request.user),
+        activa=True
+    )
     
-    # Total de productos en el sistema (todos, activos e inactivos)
-    total_productos = Producto.objects.count()
+    # Obtener todos los usuarios de las parejas del usuario actual
+    usuarios_pareja = set()
+    usuarios_pareja.add(request.user)  # Incluir el usuario actual
+    for pareja in parejas_usuario:
+        usuarios_pareja.add(pareja.usuario_1)
+        usuarios_pareja.add(pareja.usuario_2)
     
-    # Calcular porcentaje de productos contados
-    porcentaje_contado = (total_items / total_productos * 100) if total_productos > 0 else 0
+    # Verificar si el usuario es admin/superuser
+    es_admin = request.user.is_superuser or request.user.is_staff
+    
+    # Si es admin, puede ver todos los items; si no, solo los de su pareja
+    if es_admin:
+        # Para admin: obtener todos los items del conteo
+        items_todos_qs = conteo.items.all().select_related('producto', 'usuario_conteo')
+        items_pareja_qs = conteo.items.filter(usuario_conteo__in=usuarios_pareja).select_related('producto', 'usuario_conteo')
+        
+        # Obtener IDs de items de la pareja para filtrar
+        items_pareja_ids = set(items_pareja_qs.values_list('id', flat=True))
+        
+        # Items de otros usuarios (no de la pareja)
+        items_otros = [item for item in items_todos_qs if item.id not in items_pareja_ids]
+        
+        items = items_pareja_qs  # Por defecto mostrar solo los de la pareja
+        items_todos = items_todos_qs
+    else:
+        # Para usuario normal: solo items de su pareja
+        items_pareja_qs = conteo.items.filter(usuario_conteo__in=usuarios_pareja).select_related('producto', 'usuario_conteo')
+        items = items_pareja_qs
+        items_todos = None
+        items_otros = []
+    
+    # Obtener productos asignados a las parejas del usuario
+    productos_asignados = Producto.objects.filter(
+        parejas_asignadas__in=parejas_usuario
+    ).distinct()
+    
+    # Si no hay productos asignados, usar todos los productos para estadísticas
+    tiene_productos_asignados = productos_asignados.exists()
+    if not tiene_productos_asignados:
+        productos_asignados = Producto.objects.all()
+    
+    # Estadísticas (solo de los items contados por la pareja)
+    if es_admin:
+        total_items = items_pareja_qs.count()
+        total_cantidad = items_pareja_qs.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+        total_items_todos = items_todos.count()
+        total_cantidad_todos = items_todos.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+    else:
+        total_items = items.count()
+        total_cantidad = items.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+        total_items_todos = total_items
+        total_cantidad_todos = total_cantidad
+    
+    # Total de productos asignados al usuario (o todos si no hay asignados)
+    total_productos_asignados = productos_asignados.count()
+    
+    # Calcular porcentaje de productos contados (de los asignados o todos)
+    porcentaje_contado = (total_items / total_productos_asignados * 100) if total_productos_asignados > 0 else 0
+    
+    # Obtener IDs de productos ya contados (por la pareja)
+    if es_admin:
+        productos_contados_ids = set(items_pareja_qs.values_list('producto_id', flat=True))
+    else:
+        productos_contados_ids = set(items.values_list('producto_id', flat=True))
+    
+    # Separar productos en contados y no contados
+    productos_contados = productos_asignados.filter(id__in=productos_contados_ids).order_by('marca', 'nombre')
+    productos_no_contados = productos_asignados.exclude(id__in=productos_contados_ids).order_by('marca', 'nombre')
     
     return render(request, 'conteo/detalle_conteo.html', {
         'conteo': conteo,
-        'items': items,
+        'items': items,  # Items de la pareja por defecto
+        'items_otros': items_otros if es_admin else [],  # Items de otros usuarios para admin
         'total_items': total_items,
         'total_cantidad': total_cantidad,
-        'total_productos': total_productos,
+        'total_items_todos': total_items_todos if es_admin else None,
+        'total_cantidad_todos': total_cantidad_todos if es_admin else None,
+        'total_productos': total_productos_asignados,
         'porcentaje_contado': porcentaje_contado,
+        'parejas_usuario': parejas_usuario,
+        'productos_asignados': productos_asignados,
+        'productos_contados': productos_contados,
+        'productos_no_contados': productos_no_contados,
+        'productos_contados_ids': productos_contados_ids,
+        'es_admin': es_admin,
     })
 
 
@@ -108,12 +182,50 @@ def agregar_item(request, conteo_id):
             return JsonResponse({'success': False, 'error': 'Búsqueda o ID de producto requerido'})
         
         try:
-            # Si se proporciona un ID, usarlo directamente
-            if producto_id:
-                producto = Producto.objects.get(id=producto_id)
+            # Obtener parejas del usuario (donde es usuario_1 o usuario_2)
+            parejas_usuario = ParejaConteo.objects.filter(
+                Q(usuario_1=request.user) | Q(usuario_2=request.user),
+                activa=True
+            )
+            
+            # Si tiene productos asignados, verificar que esté asignado; si no, permitir cualquier producto
+            if parejas_usuario.exists():
+                productos_asignados = Producto.objects.filter(
+                    parejas_asignadas__in=parejas_usuario
+                ).distinct()
+                tiene_productos_asignados = productos_asignados.exists()
             else:
-                # Buscar por código de barras, nombre, etc. (incluyendo inactivos)
-                productos = Producto.objects.all()
+                tiene_productos_asignados = False
+            
+            # Si se proporciona un ID
+            if producto_id:
+                if tiene_productos_asignados:
+                    # Si tiene productos asignados, verificar que esté asignado
+                    producto = Producto.objects.filter(
+                        id=producto_id,
+                        parejas_asignadas__in=parejas_usuario
+                    ).first()
+                    if not producto:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Este producto no está asignado a su pareja de conteo'
+                        })
+                else:
+                    # Si no tiene productos asignados, permitir cualquier producto
+                    producto = Producto.objects.filter(id=producto_id).first()
+                    if not producto:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Producto con ID {producto_id} no encontrado'
+                        })
+            else:
+                # Buscar productos
+                if tiene_productos_asignados:
+                    # Si tiene productos asignados, buscar solo esos
+                    productos = productos_asignados
+                else:
+                    # Si no tiene productos asignados, buscar todos
+                    productos = Producto.objects.all()
                 
                 # Intentar buscar por ID si es un número
                 try:
@@ -141,7 +253,16 @@ def agregar_item(request, conteo_id):
                     ).first()
                 
                 if not producto:
-                    return JsonResponse({'success': False, 'error': f'Producto no encontrado: {busqueda}'})
+                    if tiene_productos_asignados:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Producto no encontrado o no está asignado a su pareja de conteo: {busqueda}'
+                        })
+                    else:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Producto no encontrado: {busqueda}'
+                        })
             
             with transaction.atomic():
                 cantidad_anterior = 0
@@ -206,8 +327,25 @@ def buscar_producto(request):
     if not busqueda:
         return JsonResponse({'success': False, 'error': 'Búsqueda requerida'})
     
-    # Buscar productos de forma flexible (incluyendo inactivos)
-    productos = Producto.objects.all()
+    # Obtener parejas del usuario (donde es usuario_1 o usuario_2)
+    parejas_usuario = ParejaConteo.objects.filter(
+        Q(usuario_1=request.user) | Q(usuario_2=request.user),
+        activa=True
+    )
+    
+    # Si tiene productos asignados, buscar solo esos; si no, buscar todos
+    if parejas_usuario.exists():
+        productos_asignados = Producto.objects.filter(
+            parejas_asignadas__in=parejas_usuario
+        ).distinct()
+        # Si hay productos asignados, usar solo esos; si no, usar todos
+        if productos_asignados.exists():
+            productos = productos_asignados
+        else:
+            productos = Producto.objects.all()
+    else:
+        # Si no tiene parejas, buscar todos los productos
+        productos = Producto.objects.all()
     
     # Buscar en todos los campos relevantes: código de barras, código, nombre, marca, descripción, categoría, atributo
     # Intentar buscar por ID si es un número
@@ -267,6 +405,7 @@ def buscar_producto(request):
                 'id': producto.id,
                 'nombre': producto.nombre,
                 'codigo_barras': producto.codigo_barras,
+                'marca': producto.marca or '',
                 'categoria': producto.categoria or '',
                 'atributo': producto.atributo or '',
                 'imagen': producto.imagen.url if producto.imagen else None,
