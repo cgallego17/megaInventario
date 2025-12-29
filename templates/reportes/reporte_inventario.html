@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Reporte de Inventario - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-box-seam"></i> Reporte de Inventario</h1>
+        <a href="{% url 'reportes:exportar_inventario' %}" class="btn btn-success">
+            <i class="bi bi-download"></i> Exportar CSV
+        </a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Categoría</label>
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat }}" {% if categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Búsqueda</label>
+                    <input type="text" name="busqueda" class="form-control" placeholder="Código o nombre..." value="{{ busqueda }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">Total Productos</h5>
+                    <h2>{{ total_productos }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">Total Stock</h5>
+                    <h2>{{ total_stock }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">Valor Inventario</h5>
+                    <h2>${{ valor_inventario|floatformat:2|intcomma }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Atributo</th>
+                            <th>Categoría</th>
+                            <th>Stock</th>
+                            <th>Precio</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in productos %}
+                        <tr>
+                            <td>{{ item.producto.codigo_barras }}</td>
+                            <td>{{ item.producto.nombre }}</td>
+                            <td>{{ item.producto.atributo|default:"-" }}</td>
+                            <td>{{ item.producto.categoria|default:"-" }}</td>
+                            <td>{{ item.stock_actual }}</td>
+                            <td>${{ item.producto.precio|floatformat:2|intcomma }}</td>
+                            <td>${{ item.valor_total|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No hay productos</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

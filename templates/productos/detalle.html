@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Detalle Producto - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3>{{ producto.nombre }}</h3>
+                    <div>
+                        <a href="{% url 'productos:editar' producto.pk %}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <a href="{% url 'productos:lista' %}" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 text-center">
+                            {% if producto.imagen %}
+                                <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="img-fluid rounded shadow" style="max-height: 300px; object-fit: contain;">
+                            {% else %}
+                                <div class="bg-light d-flex align-items-center justify-content-center rounded shadow" style="height: 300px;">
+                                    <div class="text-center text-muted">
+                                        <i class="bi bi-image" style="font-size: 4rem;"></i>
+                                        <p class="mt-2">Sin imagen</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <dl class="row">
+                                <dt class="col-sm-4">Código de Barras:</dt>
+                                <dd class="col-sm-8">{{ producto.codigo_barras }}</dd>
+                                
+                                <dt class="col-sm-4">Código:</dt>
+                                <dd class="col-sm-8">{{ producto.codigo|default:"-" }}</dd>
+                                
+                                <dt class="col-sm-4">Marca:</dt>
+                                <dd class="col-sm-8">
+                                    {% if producto.marca %}
+                                        <span class="badge bg-info">{{ producto.marca }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Nombre:</dt>
+                                <dd class="col-sm-8">
+                                    {{ producto.nombre }}
+                                    {% if producto.atributo %}
+                                        <span class="badge bg-secondary ms-2">{{ producto.atributo }}</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Descripción:</dt>
+                                <dd class="col-sm-8">{{ producto.descripcion|default:"-" }}</dd>
+                                
+                                <dt class="col-sm-4">Categoría:</dt>
+                                <dd class="col-sm-8">{{ producto.categoria|default:"-" }}</dd>
+                                
+                                <dt class="col-sm-4">Stock Actual:</dt>
+                                <dd class="col-sm-8">{{ producto.get_stock_actual }} {{ producto.unidad_medida }}</dd>
+                                
+                                <dt class="col-sm-4">Precio:</dt>
+                                <dd class="col-sm-8 precio-formato">${{ producto.precio|floatformat:2|intcomma }}</dd>
+                                
+                                <dt class="col-sm-4">Estado:</dt>
+                                <dd class="col-sm-8">
+                                    {% if producto.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Fecha de Creación:</dt>
+                                <dd class="col-sm-8">{{ producto.fecha_creacion|date:"d/m/Y H:i" }}</dd>
+                                
+                                <dt class="col-sm-4">Última Actualización:</dt>
+                                <dd class="col-sm-8">{{ producto.fecha_actualizacion|date:"d/m/Y H:i" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formatear precios con puntos como separadores de miles
+    document.querySelectorAll('.precio-formato').forEach(function(element) {
+        let texto = element.textContent;
+        // Extraer el número (después del $)
+        // intcomma formatea como: 1,234,567.89
+        let match = texto.match(/\$([\d,]+\.\d{2})/);
+        if (match) {
+            let numero = match[1];
+            // Reemplazar comas por puntos (miles) y punto por coma (decimal)
+            let formateado = numero.replace(/,/g, 'X').replace(/\./g, ',').replace(/X/g, '.');
+            element.textContent = '$' + formateado;
+        }
+    });
+});
+</script>
+{% endblock %}
+

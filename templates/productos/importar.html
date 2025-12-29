@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Importar Productos - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="bi bi-upload"></i> Importar Productos</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5><i class="bi bi-info-circle"></i> Formato del archivo:</h5>
+                                <p class="mb-2">El archivo debe contener las siguientes columnas (puede usar nombres alternativos):</p>
+                            </div>
+                            <a href="{% url 'productos:descargar_plantilla' %}" class="btn btn-success btn-sm">
+                                <i class="bi bi-download"></i> Descargar Plantilla
+                            </a>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-danger"><i class="bi bi-exclamation-circle"></i> Columnas Requeridas:</h6>
+                                <ul>
+                                    <li><strong>codigo_barras</strong> (o: barcode, código de barras, ean, upc)</li>
+                                    <li><strong>nombre</strong> (o: producto, name, descripcion)</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-success"><i class="bi bi-check-circle"></i> Columnas Opcionales:</h6>
+                                <ul>
+                                    <li><strong>codigo</strong> (o: cod, code, sku, código interno)</li>
+                                    <li><strong>marca</strong> (o: brand, fabricante, manufacturer)</li>
+                                    <li><strong>descripcion</strong> (o: detalle, description, observaciones)</li>
+                                    <li><strong>categoria</strong> (o: category, tipo, grupo)</li>
+                                    <li><strong>atributo</strong> (o: attribute, caracteristica, variante)</li>
+                                    <li><strong>precio</strong> (o: price, precio_unitario, costo) - default: 0</li>
+                                    <li><strong>unidad_medida</strong> (o: unidad, um, unit) - default: UN</li>
+                                    <li><strong>activo</strong> (o: active, habilitado) - default: Sí</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <strong><i class="bi bi-exclamation-triangle"></i> Nota:</strong>
+                            <ul class="mb-0">
+                                <li>Los nombres de columnas son flexibles (acepta variantes en español e inglés)</li>
+                                <li>Formatos soportados: Excel (.xlsx, .xls) o CSV</li>
+                                <li>El sistema detectará automáticamente las columnas disponibles</li>
+                                <li>Los valores vacíos o NaN se manejarán automáticamente</li>
+                                <li><strong>Descargue la plantilla de ejemplo</strong> para ver el formato correcto</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-upload"></i> Importar
+                            </button>
+                            <a href="{% url 'productos:lista' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

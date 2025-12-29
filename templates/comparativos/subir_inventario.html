@@ -1,0 +1,500 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Subir Inventarios - {{ comparativo.nombre }} - Mega Inventario{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-card {
+        transition: all 0.3s ease;
+        border: 2px dashed;
+    }
+    .upload-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .upload-card.success {
+        border-color: #198754;
+        background-color: #d1e7dd;
+    }
+    .upload-card.warning {
+        border-color: #ffc107;
+        background-color: #fff3cd;
+    }
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    .step::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background: #dee2e6;
+        z-index: 0;
+    }
+    .step:last-child::after {
+        display: none;
+    }
+    .step.active .step-number {
+        background: #0d6efd;
+        color: white;
+    }
+    .step.completed .step-number {
+        background: #198754;
+        color: white;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #dee2e6;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+        position: relative;
+        z-index: 1;
+    }
+    .file-info {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="bi bi-upload"></i> Subir Inventarios</h1>
+            <p class="text-muted mb-0">
+                <strong>{{ comparativo.nombre }}</strong>
+                | <span class="badge bg-success"><i class="bi bi-calculator"></i> Suma de todos los conteos finalizados</span>
+            </p>
+        </div>
+        <a href="{% url 'comparativos:detalle' comparativo.pk %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver al Comparativo
+        </a>
+    </div>
+
+    <!-- Indicador de pasos -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="step-indicator">
+                <div class="step {% if sistema1_subido %}completed{% else %}active{% endif %}">
+                    <div class="step-number">
+                        {% if sistema1_subido %}
+                            <i class="bi bi-check"></i>
+                        {% else %}
+                            1
+                        {% endif %}
+                    </div>
+                    <h6>{{ comparativo.nombre_sistema1|default:"Sistema 1" }}</h6>
+                    <small class="text-muted">Subir inventario</small>
+                </div>
+                <div class="step {% if sistema2_subido %}completed{% elif sistema1_subido %}active{% endif %}">
+                    <div class="step-number">
+                        {% if sistema2_subido %}
+                            <i class="bi bi-check"></i>
+                        {% else %}
+                            2
+                        {% endif %}
+                    </div>
+                    <h6>{{ comparativo.nombre_sistema2|default:"Sistema 2" }}</h6>
+                    <small class="text-muted">Subir inventario</small>
+                </div>
+                <div class="step {% if sistema1_subido and sistema2_subido %}active{% endif %}">
+                    <div class="step-number">
+                        {% if sistema1_subido and sistema2_subido %}
+                            3
+                        {% else %}
+                            3
+                        {% endif %}
+                    </div>
+                    <h6>Procesar</h6>
+                    <small class="text-muted">Comparar datos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instrucciones -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Instrucciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-file-earmark-excel"></i> Formato del Archivo</h6>
+                            <ul>
+                                <li>Archivos soportados: <strong>Excel (.xlsx, .xls)</strong> o <strong>CSV</strong></li>
+                                <li>El archivo debe contener las siguientes columnas:</li>
+                                <ul>
+                                    <li><strong>Código de Barras:</strong> Puede llamarse: <code>codigo_barras</code>, <code>codigo</code>, <code>barcode</code>, <code>codigo de barras</code></li>
+                                    <li><strong>Cantidad:</strong> Puede llamarse: <code>cantidad</code>, <code>stock</code>, <code>stock_actual</code>, <code>inventario</code></li>
+                                </ul>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-list-check"></i> Pasos a Seguir</h6>
+                            <ol>
+                                <li>
+                                    <strong>Descarga la plantilla de ejemplo:</strong>
+                                    <br>
+                                    <a href="{% url 'comparativos:descargar_ejemplo' %}" class="btn btn-sm btn-primary mt-2">
+                                        <i class="bi bi-download"></i> Descargar Plantilla Excel
+                                    </a>
+                                </li>
+                                <li>Sube el inventario del <strong>{{ comparativo.nombre_sistema1|default:"Sistema 1" }}</strong> (archivo Excel o CSV)</li>
+                                <li>Sube el inventario del <strong>{{ comparativo.nombre_sistema2|default:"Sistema 2" }}</strong> (mismo formato)</li>
+                                <li>Verifica que ambos archivos se hayan cargado correctamente</li>
+                                <li>Procesa el comparativo para cargar el conteo físico (si está asignado)</li>
+                                <li>Revisa las diferencias en el detalle del comparativo</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>Nota:</strong> Solo se procesarán los productos que existan en el sistema con el código de barras correspondiente.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistema 1 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card upload-card {% if sistema1_subido %}success{% else %}warning{% endif %}">
+                <div class="card-header {% if sistema1_subido %}bg-success text-white{% else %}bg-warning text-dark{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-1-circle"></i> {{ comparativo.nombre_sistema1|default:"Sistema 1" }}
+                            {% if sistema1_subido %}
+                                <i class="bi bi-check-circle"></i>
+                            {% endif %}
+                        </h5>
+                        {% if sistema1_subido %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-calendar"></i> {{ sistema1_subido.fecha_carga|date:"d/m/Y H:i" }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if sistema1_subido %}
+                        <div class="alert alert-success">
+                            <h6><i class="bi bi-check-circle"></i> Inventario Cargado</h6>
+                            <p class="mb-2"><strong>Archivo:</strong> {{ sistema1_subido.archivo.name|slice:"20:" }}</p>
+                            <p class="mb-2"><strong>Fecha:</strong> {{ sistema1_subido.fecha_carga|date:"d/m/Y H:i" }}</p>
+                            <p class="mb-0"><strong>Productos procesados:</strong> {{ items_sistema1 }}</p>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <form method="post" enctype="multipart/form-data" class="mt-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="sistema" value="sistema1">
+                                <div class="mb-3">
+                                    <label class="form-label">Actualizar archivo:</label>
+                                    <input type="file" name="archivo" class="form-control" accept=".xlsx,.xls,.csv" required>
+                                </div>
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="bi bi-arrow-clockwise"></i> Actualizar {{ comparativo.nombre_sistema1|default:"Sistema 1" }}
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="sistema" value="sistema1">
+                            <div class="mb-3">
+                                <label for="id_archivo_s1" class="form-label">
+                                    <i class="bi bi-file-earmark-arrow-up"></i> Seleccionar Archivo
+                                </label>
+                                <input type="file" name="archivo" id="id_archivo_s1" class="form-control" accept=".xlsx,.xls,.csv" required>
+                                <small class="form-text text-muted">
+                                    Formatos aceptados: .xlsx, .xls, .csv
+                                </small>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-upload"></i> Subir Inventario {{ comparativo.nombre_sistema1|default:"Sistema 1" }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sistema 2 -->
+        <div class="col-md-6">
+            <div class="card upload-card {% if sistema2_subido %}success{% else %}warning{% endif %}">
+                <div class="card-header {% if sistema2_subido %}bg-success text-white{% else %}bg-warning text-dark{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-2-circle"></i> {{ comparativo.nombre_sistema2|default:"Sistema 2" }}
+                            {% if sistema2_subido %}
+                                <i class="bi bi-check-circle"></i>
+                            {% endif %}
+                        </h5>
+                        {% if sistema2_subido %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-calendar"></i> {{ sistema2_subido.fecha_carga|date:"d/m/Y H:i" }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if sistema2_subido %}
+                        <div class="alert alert-success">
+                            <h6><i class="bi bi-check-circle"></i> Inventario Cargado</h6>
+                            <p class="mb-2"><strong>Archivo:</strong> {{ sistema2_subido.archivo.name|slice:"20:" }}</p>
+                            <p class="mb-2"><strong>Fecha:</strong> {{ sistema2_subido.fecha_carga|date:"d/m/Y H:i" }}</p>
+                            <p class="mb-0"><strong>Productos procesados:</strong> {{ items_sistema2 }}</p>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <form method="post" enctype="multipart/form-data" class="mt-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="sistema" value="sistema2">
+                                <div class="mb-3">
+                                    <label class="form-label">Actualizar archivo:</label>
+                                    <input type="file" name="archivo" class="form-control" accept=".xlsx,.xls,.csv" required>
+                                </div>
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="bi bi-arrow-clockwise"></i> Actualizar {{ comparativo.nombre_sistema2|default:"Sistema 2" }}
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="sistema" value="sistema2">
+                            <div class="mb-3">
+                                <label for="id_archivo_s2" class="form-label">
+                                    <i class="bi bi-file-earmark-arrow-up"></i> Seleccionar Archivo
+                                </label>
+                                <input type="file" name="archivo" id="id_archivo_s2" class="form-control" accept=".xlsx,.xls,.csv" required>
+                                <small class="form-text text-muted">
+                                    Formatos aceptados: .xlsx, .xls, .csv
+                                </small>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" {% if not sistema1_subido %}disabled title="Primero debes subir el Sistema 1"{% endif %}>
+                                <i class="bi bi-upload"></i> Subir Inventario {{ comparativo.nombre_sistema2|default:"Sistema 2" }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen y acción final -->
+    {% if sistema1_subido and sistema2_subido %}
+    <div class="card border-success mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-check-circle"></i> Inventarios Listos para Procesar</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h4 class="text-success">{{ items_sistema1 }}</h4>
+                        <p class="text-muted mb-0">Productos {{ comparativo.nombre_sistema1|default:"Sistema 1" }}</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h4 class="text-success">{{ items_sistema2 }}</h4>
+                        <p class="text-muted mb-0">Productos {{ comparativo.nombre_sistema2|default:"Sistema 2" }}</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h4 class="text-info">{{ comparativo.items.count }}</h4>
+                        <p class="text-muted mb-0">Total Items Comparativo</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> Conteo Físico</h6>
+                <p class="mb-0">
+                    El conteo físico se calcula automáticamente <strong>sumando las cantidades de todos los conteos finalizados</strong>.
+                    <br>
+                    Al procesar, se cargarán automáticamente las cantidades totales de todos los conteos.
+                </p>
+            </div>
+            <div class="d-grid">
+                <a href="{% url 'comparativos:procesar' comparativo.pk %}" class="btn btn-success btn-lg">
+                    <i class="bi bi-play-circle"></i> Procesar Comparativo
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-warning">
+        <div class="card-body text-center">
+            <h5 class="text-warning">
+                <i class="bi bi-hourglass-split"></i> Pendiente
+            </h5>
+            <p class="mb-0">
+                {% if not sistema1_subido and not sistema2_subido %}
+                    Sube ambos inventarios para continuar.
+                {% elif not sistema1_subido %}
+                    Falta subir el inventario del {{ comparativo.nombre_sistema1|default:"Sistema 1" }}.
+                {% else %}
+                    Falta subir el inventario del {{ comparativo.nombre_sistema2|default:"Sistema 2" }}.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ejemplo de formato -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-excel"></i> Plantilla de Ejemplo</h5>
+        </div>
+        <div class="card-body">
+            <p>Descarga la plantilla de ejemplo y úsala como referencia. Tu archivo debe tener un formato similar a este:</p>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>codigo_barras</th>
+                            <th>codigo</th>
+                            <th>nombre</th>
+                            <th>atributo</th>
+                            <th>cantidad_sistema1</th>
+                            <th>cantidad_sistema2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1234567890123</td>
+                            <td>PROD001</td>
+                            <td>Producto Ejemplo 1</td>
+                            <td>Ejemplo</td>
+                            <td><strong class="text-primary">(llenar)</strong></td>
+                            <td><strong class="text-success">(llenar)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>9876543210987</td>
+                            <td>PROD002</td>
+                            <td>Producto Ejemplo 2</td>
+                            <td>Ejemplo</td>
+                            <td><strong class="text-primary">(llenar)</strong></td>
+                            <td><strong class="text-success">(llenar)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>5555555555555</td>
+                            <td>PROD003</td>
+                            <td>Producto Ejemplo 3</td>
+                            <td>Ejemplo</td>
+                            <td><strong class="text-primary">(llenar)</strong></td>
+                            <td><strong class="text-success">(llenar)</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-warning mt-3 mb-0">
+                <strong><i class="bi bi-info-circle"></i> Importante:</strong> La plantilla incluye <strong>TODOS los productos</strong> del sistema. 
+                <ul class="mb-0 mt-2">
+                    <li><strong>Opción 1:</strong> Complete ambas columnas (<code>cantidad_sistema1</code> y <code>cantidad_sistema2</code>) en el mismo archivo y súbalo dos veces (una para cada sistema).</li>
+                    <li><strong>Opción 2:</strong> Cree archivos separados - copie la plantilla, elimine una columna y renombre la otra como <code>cantidad</code> para cada sistema.</li>
+                </ul>
+                Las columnas <code>codigo_barras</code>, <code>codigo</code>, <code>nombre</code> y <code>atributo</code> son informativas y <strong>NO deben modificarse</strong>.
+            </div>
+            <div class="alert alert-info mt-3 mb-0">
+                <h6><i class="bi bi-info-circle"></i> Información sobre el formato:</h6>
+                <ul class="mb-0">
+                    <li><strong>La plantilla incluye TODOS los productos del sistema</strong> - Complete las cantidades según corresponda</li>
+                    <li><strong>Nombres de columnas aceptados:</strong>
+                        <ul>
+                            <li>Para código: <code>codigo_barras</code>, <code>codigo</code>, <code>barcode</code>, <code>codigo de barras</code></li>
+                            <li>Para cantidad: <code>cantidad</code>, <code>cantidad_sistema1</code>, <code>cantidad_sistema2</code>, <code>stock</code>, <code>stock_actual</code>, <code>inventario</code></li>
+                        </ul>
+                    </li>
+                    <li>El archivo puede ser <strong>Excel (.xlsx, .xls)</strong> o <strong>CSV</strong></li>
+                    <li>La primera fila debe contener los nombres de las columnas</li>
+                    <li>El sistema comparará todos los productos que estén en la plantilla con el inventario físico</li>
+                    <li>Si un producto no tiene cantidad (0 o vacío), también se comparará</li>
+                    <li><strong>Recomendación:</strong> Use la misma plantilla para ambos sistemas, solo complete la columna correspondiente a cada sistema</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay de carga -->
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <h5 class="mt-3 text-white">Procesando comparativo...</h5>
+        <p class="text-white-50 mt-2">Por favor, espere. Esto puede tomar unos momentos.</p>
+        <p class="text-white-50 small">Sumando todos los conteos finalizados y procesando productos...</p>
+    </div>
+</div>
+
+<style>
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-content {
+    text-align: center;
+    padding: 2rem;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    max-width: 400px;
+}
+
+.loading-content .spinner-border {
+    border-width: 0.3em;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const procesarLinks = document.querySelectorAll('a[href*="procesar"]');
+    
+    procesarLinks.forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            // Mostrar el overlay de carga
+            loadingOverlay.style.display = 'flex';
+            
+            // Prevenir que el usuario pueda hacer clic fuera del overlay
+            document.body.style.overflow = 'hidden';
+            
+            // El enlace seguirá su curso normal, pero el usuario verá el spinner
+        });
+    });
+});
+</script>
+{% endblock %}

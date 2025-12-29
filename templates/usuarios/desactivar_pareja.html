@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Desactivar Pareja - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h3><i class="bi bi-exclamation-triangle"></i> Desactivar Pareja</h3>
+                </div>
+                <div class="card-body">
+                    <p>¿Estás seguro de que deseas desactivar esta pareja?</p>
+                    <div class="alert alert-info">
+                        <strong>{{ pareja.usuario_1.username }}</strong> & <strong>{{ pareja.usuario_2.username }}</strong>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-x-circle"></i> Sí, desactivar
+                        </button>
+                        <a href="{% url 'usuarios:lista_parejas' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

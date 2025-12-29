@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Parejas de Conteo - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-people-fill"></i> Parejas de Conteo</h1>
+        <a href="{% url 'usuarios:crear_pareja' %}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Nueva Pareja
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Color</th>
+                            <th>Usuario 1</th>
+                            <th>Usuario 2</th>
+                            <th>Estado</th>
+                            <th>Fecha de Creación</th>
+                            <th>Observaciones</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pareja in parejas %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-{{ pareja.color }}" style="width: 60px; height: 20px; display: inline-block;">
+                                    {{ pareja.get_color_display }}
+                                </span>
+                            </td>
+                            <td><strong>{{ pareja.usuario_1.username }}</strong></td>
+                            <td><strong>{{ pareja.usuario_2.username }}</strong></td>
+                            <td>
+                                {% if pareja.activa %}
+                                    <span class="badge bg-success">Activa</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactiva</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ pareja.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                            <td>{{ pareja.observaciones|truncatewords:10|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'usuarios:editar_pareja' pareja.pk %}" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                {% if pareja.activa %}
+                                <a href="{% url 'usuarios:desactivar_pareja' pareja.pk %}" class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-pause-circle"></i> Desactivar
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'usuarios:eliminar_pareja' pareja.pk %}" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No hay parejas de conteo registradas</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

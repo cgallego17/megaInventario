@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Usuario - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h3><i class="bi bi-exclamation-triangle"></i> Eliminar Usuario</h3>
+                </div>
+                <div class="card-body">
+                    <p>¿Estás seguro de que deseas eliminar este usuario?</p>
+                    <div class="alert alert-warning">
+                        <strong>{{ usuario.username }}</strong><br>
+                        <small>Nombre: {{ usuario.get_full_name|default:"-" }}</small><br>
+                        <small>Email: {{ usuario.email|default:"-" }}</small>
+                    </div>
+                    <p class="text-danger"><strong>Advertencia:</strong> Esta acción no se puede deshacer. Se eliminarán todos los datos relacionados con este usuario.</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Sí, eliminar
+                        </button>
+                        <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

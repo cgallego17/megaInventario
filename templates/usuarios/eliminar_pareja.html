@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Pareja - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h3><i class="bi bi-exclamation-triangle"></i> Eliminar Pareja</h3>
+                </div>
+                <div class="card-body">
+                    <p>¿Estás seguro de que deseas eliminar esta pareja?</p>
+                    <div class="alert alert-warning">
+                        <strong>{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</strong><br>
+                        <small>Fecha de creación: {{ pareja.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <p class="text-danger"><strong>Advertencia:</strong> Esta acción no se puede deshacer.</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Sí, eliminar
+                        </button>
+                        <a href="{% url 'usuarios:lista_parejas' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Productos - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0"><i class="bi bi-box"></i> Productos</h1>
+        <div class="btn-group" role="group">
+            <a href="{% url 'productos:crear' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Nuevo
+            </a>
+            <a href="{% url 'productos:importar' %}" class="btn btn-success btn-sm">
+                <i class="bi bi-upload"></i> Importar
+            </a>
+            <a href="{% url 'productos:importar_api' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-cloud-download"></i> API
+            </a>
+            <a href="{% url 'productos:exportar' %}" class="btn btn-info btn-sm">
+                <i class="bi bi-download"></i> Exportar
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-3">
+            <form method="get" class="mb-2">
+                <!-- Búsqueda general -->
+                <div class="row g-2 mb-2">
+                    <div class="col-md-10">
+                        <input type="text" name="busqueda" class="form-control form-control-sm" placeholder="Buscar por ID, código de barras, código, nombre, marca, atributo..." value="{{ busqueda }}" autofocus>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filtros -->
+                <div class="row g-2 mb-2">
+                    <div class="col-md-2">
+                        <label class="form-label small mb-0"><i class="bi bi-tag"></i> Marca</label>
+                        <select name="marca" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            {% for marca in marcas %}
+                                <option value="{{ marca }}" {% if marca_filtro == marca %}selected{% endif %}>{{ marca }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-0"><i class="bi bi-grid"></i> Categoría</label>
+                        <select name="categoria" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria }}" {% if categoria_filtro == categoria %}selected{% endif %}>{{ categoria }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small mb-0"><i class="bi bi-box"></i> Stock</label>
+                        <select name="stock" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="con_stock" {% if stock_filtro == 'con_stock' %}selected{% endif %}>Con Stock</option>
+                            <option value="sin_stock" {% if stock_filtro == 'sin_stock' %}selected{% endif %}>Sin Stock</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small mb-0"><i class="bi bi-currency-dollar"></i> Precio Mín</label>
+                        <input type="number" name="precio_min" class="form-control form-control-sm" placeholder="0.00" step="0.01" value="{{ precio_min }}">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small mb-0"><i class="bi bi-currency-dollar"></i> Precio Máx</label>
+                        <input type="number" name="precio_max" class="form-control form-control-sm" placeholder="999999" step="0.01" value="{{ precio_max }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-0"><i class="bi bi-list-ul"></i> Atributo</label>
+                        <select name="atributo" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            {% for atributo in atributos %}
+                                <option value="{{ atributo }}" {% if atributo_filtro == atributo %}selected{% endif %}>{{ atributo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-0"><i class="bi bi-sort-alpha-down"></i> Ordenar</label>
+                        <select name="orden" class="form-select form-select-sm">
+                            <option value="nombre" {% if orden == 'nombre' %}selected{% endif %}>Nombre (A-Z)</option>
+                            <option value="-nombre" {% if orden == '-nombre' %}selected{% endif %}>Nombre (Z-A)</option>
+                            <option value="precio" {% if orden == 'precio' %}selected{% endif %}>Precio ↑</option>
+                            <option value="-precio" {% if orden == '-precio' %}selected{% endif %}>Precio ↓</option>
+                            <option value="marca" {% if orden == 'marca' %}selected{% endif %}>Marca (A-Z)</option>
+                            <option value="codigo_barras" {% if orden == 'codigo_barras' %}selected{% endif %}>Código</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-sm w-100 me-1">
+                            <i class="bi bi-funnel"></i>
+                        </button>
+                        <a href="{% url 'productos:lista' %}" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Mostrar filtros activos -->
+            {% if marca_filtro or categoria_filtro or stock_filtro or precio_min or precio_max or atributo_filtro %}
+            <div class="alert alert-info py-2 mb-2">
+                <small><strong><i class="bi bi-funnel-fill"></i> Filtros:</strong>
+                {% if marca_filtro %}<span class="badge bg-primary me-1">{{ marca_filtro }}</span>{% endif %}
+                {% if categoria_filtro %}<span class="badge bg-primary me-1">{{ categoria_filtro }}</span>{% endif %}
+                {% if stock_filtro == 'con_stock' %}<span class="badge bg-success me-1">Con Stock</span>{% endif %}
+                {% if stock_filtro == 'sin_stock' %}<span class="badge bg-danger me-1">Sin Stock</span>{% endif %}
+                {% if precio_min %}<span class="badge bg-primary me-1">Min: ${{ precio_min }}</span>{% endif %}
+                {% if precio_max %}<span class="badge bg-primary me-1">Max: ${{ precio_max }}</span>{% endif %}
+                {% if atributo_filtro %}<span class="badge bg-primary me-1">{{ atributo_filtro }}</span>{% endif %}
+                </small>
+            </div>
+            {% endif %}
+
+            <div class="table-responsive" style="max-height: calc(100vh - 350px); overflow-y: auto;">
+                <table class="table table-sm table-striped table-hover mb-0" style="font-size: 0.875rem;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 60px; min-width: 60px;" class="text-center">Imagen</th>
+                            <th style="width: 120px; min-width: 120px;">Código Barras</th>
+                            <th style="width: 100px; min-width: 100px;">Código</th>
+                            <th style="min-width: 250px;">Nombre</th>
+                            <th style="width: 120px; min-width: 120px;">Atributo</th>
+                            <th style="width: 100px; min-width: 100px;">Marca</th>
+                            <th style="width: 120px; min-width: 120px;">Categoría</th>
+                            <th style="width: 90px; min-width: 90px;" class="text-end">Stock</th>
+                            <th style="width: 90px; min-width: 90px;" class="text-end">Precio</th>
+                            <th style="width: 100px; min-width: 100px;" class="text-center">Estado</th>
+                            <th style="width: 140px; min-width: 140px;" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in page_obj %}
+                        <tr>
+                            <td class="text-center p-1">
+                                {% if producto.imagen %}
+                                    <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-light d-flex align-items-center justify-content-center mx-auto" style="width: 50px; height: 50px; border-radius: 4px;">
+                                        <i class="bi bi-image text-muted" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="small">{{ producto.codigo_barras }}</td>
+                            <td class="small">{{ producto.codigo|default:"-" }}</td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 250px;" title="{{ producto.nombre }}">
+                                    {{ producto.nombre }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if producto.atributo %}
+                                    <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ producto.atributo }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if producto.marca %}
+                                    <span class="badge bg-info" style="font-size: 0.75rem;">{{ producto.marca }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="small">{{ producto.categoria|default:"-" }}</td>
+                            <td class="text-end small">
+                                <strong>{{ producto.get_stock_actual }}</strong> <span class="text-muted">{{ producto.unidad_medida }}</span>
+                            </td>
+                            <td class="text-end small">
+                                <strong class="precio-formato">${{ producto.precio|floatformat:2|intcomma }}</strong>
+                            </td>
+                            <td class="text-center">
+                                {% if producto.activo %}
+                                    <span class="badge bg-success" style="font-size: 0.75rem;">
+                                        <i class="bi bi-check-circle"></i> Activo
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger" style="font-size: 0.75rem;">
+                                        <i class="bi bi-x-circle"></i> Inactivo
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'productos:detalle' producto.pk %}" class="btn btn-outline-info btn-sm" title="Ver">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'productos:editar' producto.pk %}" class="btn btn-outline-warning btn-sm" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'productos:eliminar' producto.pk %}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="text-center py-4">No hay productos registrados</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle"></i> 
+                    Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} producto(s)
+                    {% if marca_filtro or categoria_filtro or stock_filtro or precio_min or precio_max or atributo_filtro or busqueda %}
+                        <span class="badge bg-secondary">filtrados</span>
+                    {% endif %}
+                </div>
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                        </li>
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if url_params %}&{{ url_params }}{% endif %}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    .table-responsive {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+    }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formatear precios con puntos como separadores de miles
+    document.querySelectorAll('.precio-formato').forEach(function(element) {
+        let texto = element.textContent;
+        // Extraer el número (después del $)
+        // intcomma formatea como: 1,234,567.89
+        let match = texto.match(/\$([\d,]+\.\d{2})/);
+        if (match) {
+            let numero = match[1];
+            // Reemplazar comas por puntos (miles) y punto por coma (decimal)
+            let formateado = numero.replace(/,/g, 'X').replace(/\./g, ',').replace(/X/g, '.');
+            element.textContent = '$' + formateado;
+        }
+    });
+});
+</script>
+{% endblock %}
+

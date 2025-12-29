@@ -1,0 +1,1240 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Conteo - Mega Inventario{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Variables CSS para fácil personalización */
+    :root {
+        --mobile-padding: 0.75rem;
+        --mobile-btn-height: 52px;
+        --mobile-input-height: 48px;
+        --mobile-card-radius: 12px;
+        --mobile-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        --primary-color: #007bff;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+    }
+    
+    /* Optimización para móviles */
+    @media (max-width: 768px) {
+        body {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        
+        .container {
+            padding: var(--mobile-padding);
+            max-width: 100%;
+        }
+        
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        
+        h5 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .card {
+            margin-bottom: 1rem;
+            border-radius: var(--mobile-card-radius);
+            box-shadow: var(--mobile-shadow);
+            border: none;
+        }
+        
+        .card-header {
+            border-radius: var(--mobile-card-radius) var(--mobile-card-radius) 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .btn {
+            padding: 0.875rem 1.25rem;
+            font-size: 1rem;
+            font-weight: 500;
+            min-height: var(--mobile-btn-height);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+        }
+        
+        .form-control {
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            min-height: var(--mobile-input-height);
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+            outline: none;
+        }
+        
+        .input-group .form-control {
+            min-height: var(--mobile-input-height);
+        }
+        
+        .table {
+            font-size: 0.9rem;
+        }
+        
+        .table th, .table td {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        /* Mejoras de accesibilidad */
+        .btn:focus-visible {
+            outline: 3px solid rgba(0,123,255,0.5);
+            outline-offset: 2px;
+        }
+        
+        /* Animaciones suaves */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        /* Mejoras de scroll */
+        * {
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+    
+    #video {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+    }
+    
+    #scanner-container {
+        position: relative;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(250px, 80vw);
+        height: min(250px, 80vw);
+        border: 3px solid #28a745;
+        border-radius: 8px;
+        pointer-events: none;
+    }
+    
+    .scanner-overlay::before {
+        content: '';
+        position: absolute;
+        top: -3px;
+        left: -3px;
+        right: -3px;
+        bottom: -3px;
+        border: 2px solid rgba(40, 167, 69, 0.3);
+        border-radius: 8px;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .item-list {
+        max-height: 60vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Cards compactas para items en móvil */
+    @media (max-width: 768px) {
+        .item-card-compact {
+            background: white;
+            transition: all 0.15s ease;
+        }
+        
+        .item-card-compact:active {
+            background: #f8f9fa;
+        }
+        
+        .item-card-compact:last-child > div {
+            border-bottom: none !important;
+        }
+        
+        .table-responsive {
+            display: none;
+        }
+        
+        .items-mobile {
+            display: block;
+        }
+        
+        /* Animación para nuevos items */
+        @keyframes itemAppear {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .item-card-compact {
+            animation: itemAppear 0.2s ease-out;
+        }
+    }
+    
+    /* Cards originales para compatibilidad */
+    .item-card {
+        border: none;
+        border-radius: var(--mobile-card-radius);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        box-shadow: var(--mobile-shadow);
+    }
+    
+    @media (min-width: 769px) {
+        .items-mobile {
+            display: none;
+        }
+    }
+    
+    /* Mejoras para input group en móvil */
+    @media (max-width: 768px) {
+        .input-group {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .input-group .form-control {
+            width: 100% !important;
+            margin-bottom: 0;
+            max-width: 100% !important;
+        }
+        
+        .input-group .btn {
+            width: 100%;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        #sugerencias-productos {
+            width: 100% !important;
+            max-height: 50vh;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-top: 0.5rem;
+        }
+        
+        #sugerencias-productos .list-group-item {
+            padding: 1rem;
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+        
+        #sugerencias-productos .list-group-item:first-child {
+            border-radius: 12px 12px 0 0;
+        }
+        
+        #sugerencias-productos .list-group-item:last-child {
+            border-bottom: none;
+            border-radius: 0 0 12px 12px;
+        }
+        
+        #sugerencias-productos .list-group-item:active,
+        #sugerencias-productos .list-group-item:hover {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            transform: translateX(4px);
+        }
+        
+        #sugerencias-productos .list-group-item h6 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        #sugerencias-productos .list-group-item small {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        #sugerencias-productos .list-group-item p {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+    }
+    
+    /* Botones más grandes en móvil */
+    @media (max-width: 768px) {
+        .btn-sm {
+            padding: 0.625rem 1rem;
+            font-size: 0.95rem;
+            min-height: 44px;
+            border-radius: 8px;
+        }
+        
+        .btn-sm i {
+            font-size: 1.1rem;
+        }
+    }
+    
+    /* Estadísticas mejoradas en móvil */
+    @media (max-width: 768px) {
+        dl.row {
+            margin: 0;
+        }
+        
+        dl.row dt {
+            padding: 0.75rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #6c757d;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        dl.row dd {
+            padding: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: right;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        dl.row dt:last-child,
+        dl.row dd:last-child {
+            border-bottom: none;
+        }
+    }
+    
+    /* Mejor espaciado en móvil */
+    @media (max-width: 768px) {
+        .mb-3 {
+            margin-bottom: 1.25rem !important;
+        }
+        
+        .card-body {
+            padding: 1.25rem;
+        }
+        
+        .card-header {
+            padding: 1rem 1.25rem;
+            font-size: 1.1rem;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            color: #495057;
+        }
+    }
+    
+    /* Mejoras del scanner en móvil */
+    @media (max-width: 768px) {
+        #scanner-container {
+            margin: 0 -1.25rem;
+            width: calc(100% + 2.5rem);
+        }
+        
+        #video {
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        
+        .scanner-overlay {
+            border-width: 4px;
+        }
+    }
+    
+    /* Mejoras de mensajes */
+    @media (max-width: 768px) {
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+        }
+    }
+    
+    /* Badges mejorados */
+    @media (max-width: 768px) {
+        .badge {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        
+        .badge.bg-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%) !important;
+        }
+    }
+    
+    /* Mejoras de scroll */
+    @media (max-width: 768px) {
+        .item-list {
+            max-height: calc(100vh - 250px);
+            padding-right: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .item-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .item-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .item-list::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 2px;
+        }
+    }
+    
+    @media (min-width: 769px) {
+        .item-list {
+            max-height: 45vh;
+        }
+        
+        .item-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .item-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .item-list::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+        
+        .item-list::-webkit-scrollbar-thumb:hover {
+            background: #0056b3;
+        }
+    }
+        
+        .item-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .item-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .item-list::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+        
+        .item-list::-webkit-scrollbar-thumb:hover {
+            background: #0056b3;
+        }
+    }
+    
+    /* Layout más compacto */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        .card-header {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .card-body {
+            padding: 0.75rem;
+        }
+        
+        h4 {
+            font-size: 1.2rem;
+        }
+        
+        h6 {
+            font-size: 1rem;
+        }
+        
+        .table-sm th,
+        .table-sm td {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.85rem;
+        }
+        
+        .input-group-sm .form-control {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            min-height: 40px;
+        }
+        
+        .input-group-sm .btn {
+            padding: 0.5rem 0.75rem;
+            min-height: 40px;
+        }
+    }
+    
+    /* Estadísticas compactas */
+    .card-body.py-2 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+    
+    .card-body.py-2 .row {
+        margin: 0;
+    }
+    
+    .card-body.py-2 .col-6 {
+        padding: 0.25rem;
+    }
+    
+    .card-body.py-2 small {
+        font-size: 0.75rem;
+    }
+    
+    .card-body.py-2 .fs-5 {
+        font-size: 1.1rem !important;
+    }
+    
+    /* Mejoras de header */
+    @media (max-width: 768px) {
+        .card-header.bg-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%) !important;
+        }
+    }
+    
+    /* Efecto de carga */
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+    
+    .loading {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-3 mt-2 mt-md-3">
+    <!-- Header compacto -->
+    <div class="row mb-2">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <h4 class="mb-0"><i class="bi bi-clipboard-check"></i> <span class="badge bg-primary me-2">Conteo {{ conteo.numero_conteo }}</span><span class="d-none d-md-inline">{{ conteo.nombre }}</span><span class="d-md-none">{{ conteo.nombre|truncatewords:4 }}</span></h4>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <a href="{% url 'movimientos:por_conteo' conteo.id %}" class="btn btn-sm btn-info">
+                        <i class="bi bi-activity"></i> Movimientos
+                    </a>
+                    <span class="badge {% if conteo.estado == 'en_proceso' %}bg-warning{% else %}bg-success{% endif %}">{{ conteo.estado|title }}</span>
+                    <small class="text-muted d-none d-md-inline">
+                        {% if conteo.parejas.all %}
+                            {% for pareja in conteo.parejas.all %}
+                                <span class="badge bg-{{ pareja.color }}">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                            {% endfor %}
+                        {% elif conteo.usuario_1 and conteo.usuario_2 %}
+                            {{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="bi bi-person-plus"></i> Creado por: <strong>{% if conteo.usuario_creador %}{{ conteo.usuario_creador.username }}{% else %}N/A{% endif %}</strong> 
+                        el {{ conteo.fecha_creacion|date:"d/m/Y H:i" }}
+                        {% if conteo.usuario_modificador %}
+                            | <i class="bi bi-pencil"></i> Modificado por: <strong>{{ conteo.usuario_modificador.username }}</strong> 
+                            el {{ conteo.fecha_modificacion|date:"d/m/Y H:i" }}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas sticky -->
+    <div class="row mb-2">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm mb-2" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                <div class="card-body py-2">
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <small class="text-muted d-block">Items Contados</small>
+                            <strong class="fs-5 text-primary">{{ total_items }}</strong>
+                            <small class="text-muted d-block">de {{ total_productos }}</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Cantidad Total</small>
+                            <strong class="fs-5 text-success">{{ total_cantidad }}</strong>
+                        </div>
+                    </div>
+                    <!-- Barra de progreso -->
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted">Progreso del Conteo</small>
+                            <small class="text-muted"><strong>{{ porcentaje_contado|floatformat:1 }}%</strong></small>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated 
+                                {% if porcentaje_contado >= 100 %}bg-success
+                                {% elif porcentaje_contado >= 75 %}bg-info
+                                {% elif porcentaje_contado >= 50 %}bg-warning
+                                {% else %}bg-danger{% endif %}" 
+                                role="progressbar" 
+                                style="width: {{ porcentaje_contado }}%"
+                                aria-valuenow="{{ porcentaje_contado }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                <small class="text-white fw-bold">{{ total_items }} / {{ total_productos }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2">
+        <!-- Scanner colapsable -->
+        <div class="col-12">
+            <div class="card mb-2">
+                <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center" style="cursor: pointer;" onclick="toggleScanner()">
+                    <h6 class="mb-0"><i class="bi bi-camera"></i> Scanner y Búsqueda</h6>
+                    <i class="bi bi-chevron-down" id="scanner-toggle-icon"></i>
+                </div>
+                <div class="card-body" id="scanner-section">
+                    <!-- Búsqueda rápida siempre visible -->
+                    <div class="mb-2 position-relative">
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar por código, código de barras, nombre, marca, categoría, atributo..." autofocus>
+                            <input type="number" id="cantidad" class="form-control" placeholder="Cant." value="0" min="0" style="max-width: 80px;">
+                            <button id="agregar-manual" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                        </div>
+                        <div id="sugerencias-productos" class="list-group mt-1 border rounded shadow-sm" style="display: none; max-height: 40vh; overflow-y: auto; position: absolute; z-index: 1000; width: 100%; background: white; top: 100%; left: 0;">
+                            <!-- Las sugerencias se cargarán aquí -->
+                        </div>
+                    </div>
+                    <div id="mensaje-resultado" class="alert alert-sm py-1 mb-2" style="display: none; font-size: 0.85rem;"></div>
+                    
+                    <!-- Scanner colapsable -->
+                    <div id="scanner-container-wrapper" style="display: none;">
+                        <div id="scanner-container" class="mb-2">
+                            <video id="video" autoplay playsinline></video>
+                            <div class="scanner-overlay"></div>
+                        </div>
+                        <div class="d-grid gap-1">
+                            <button id="start-camera" class="btn btn-success btn-sm">
+                                <i class="bi bi-camera-video"></i> Activar Cámara
+                            </button>
+                            <button id="stop-camera" class="btn btn-danger btn-sm" style="display: none;">
+                                <i class="bi bi-camera-video-off"></i> Desactivar
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleScanner()" id="toggle-scanner-btn">
+                        <i class="bi bi-camera"></i> Mostrar/Ocultar Scanner
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items contados - Compacto -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                    <h6 class="mb-0"><i class="bi bi-list-ul"></i> Items <span class="badge bg-primary">{{ total_items }}</span></h6>
+                    <small class="text-muted">Total: <strong>{{ total_cantidad }}</strong></small>
+                </div>
+                <div class="card-body p-1">
+                    <!-- Vista de tabla para desktop - Ultra compacta -->
+                    <div class="table-responsive d-none d-md-block">
+                        <div class="item-list" style="max-height: 45vh;">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
+                                <thead class="table-light sticky-top" style="top: 0; z-index: 10;">
+                                    <tr>
+                                        <th style="width: 60px; padding: 0.4rem;">Img</th>
+                                        <th style="width: 20%; padding: 0.4rem;">Código</th>
+                                        <th style="width: 40%; padding: 0.4rem;">Producto</th>
+                                        <th style="width: 15%; padding: 0.4rem;" class="text-center">Cant.</th>
+                                        <th style="width: 10%; padding: 0.4rem;" class="text-center">✕</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="items-table">
+                                    {% for item in items %}
+                                    <tr id="item-{{ item.id }}" style="cursor: pointer;" onclick="this.querySelector('.eliminar-item')?.click()">
+                                        <td style="padding: 0.3rem;">
+                                            {% if item.producto.imagen %}
+                                                <img src="{{ item.producto.imagen.url }}" alt="{{ item.producto.nombre }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                            {% else %}
+                                                <div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px;">
+                                                    <i class="bi bi-image text-muted" style="font-size: 0.75rem;"></i>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td style="padding: 0.4rem;"><small class="text-muted">{{ item.producto.codigo_barras|truncatechars:12 }}</small></td>
+                                        <td style="padding: 0.4rem;">
+                                            {{ item.producto.nombre|truncatewords:3 }}
+                                            {% if item.producto.atributo %}
+                                                <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">{{ item.producto.atributo }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-primary">{{ item.cantidad }}</span></td>
+                                        <td style="padding: 0.2rem;" class="text-center">
+                                            <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="{{ item.id }}" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                                                <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Vista compacta para móvil -->
+                    <div class="items-mobile d-md-none" id="items-mobile">
+                        <div class="item-list" style="max-height: 50vh;">
+                            {% for item in items %}
+                            <div class="item-card-compact" id="item-mobile-{{ item.id }}">
+                                <div class="d-flex justify-content-between align-items-center p-2" style="border-bottom: 1px solid #e9ecef;">
+                                    <div class="d-flex align-items-center gap-2" style="flex: 1; min-width: 0;">
+                                        {% if item.producto.imagen %}
+                                            <img src="{{ item.producto.imagen.url }}" alt="{{ item.producto.nombre }}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">
+                                        {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; border-radius: 6px; flex-shrink: 0;">
+                                                <i class="bi bi-image text-muted" style="font-size: 1rem;"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div class="flex-grow-1" style="min-width: 0;">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge bg-primary" style="font-size: 0.9rem; min-width: 35px;">{{ item.cantidad }}</span>
+                                                <div style="flex: 1; overflow: hidden;">
+                                                    <strong style="font-size: 0.9rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                        {{ item.producto.nombre }}
+                                                        {% if item.producto.atributo %}
+                                                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">{{ item.producto.atributo }}</span>
+                                                        {% endif %}
+                                                    </strong>
+                                                    <small class="text-muted" style="font-size: 0.75rem;">{{ item.producto.codigo_barras|truncatechars:15 }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-danger eliminar-item p-1 ms-2" data-item-id="{{ item.id }}" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                                        <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Función para toggle del scanner
+    function toggleScanner() {
+        const wrapper = document.getElementById('scanner-container-wrapper');
+        const icon = document.getElementById('scanner-toggle-icon');
+        const btn = document.getElementById('toggle-scanner-btn');
+        
+        if (wrapper.style.display === 'none') {
+            wrapper.style.display = 'block';
+            icon.classList.remove('bi-chevron-down');
+            icon.classList.add('bi-chevron-up');
+            if (btn) btn.innerHTML = '<i class="bi bi-camera"></i> Ocultar Scanner';
+        } else {
+            wrapper.style.display = 'none';
+            icon.classList.remove('bi-chevron-up');
+            icon.classList.add('bi-chevron-down');
+            if (btn) btn.innerHTML = '<i class="bi bi-camera"></i> Mostrar Scanner';
+            // Detener cámara si está activa
+            if (scanning && Quagga) {
+                Quagga.stop();
+                scanning = false;
+                startBtn.style.display = 'block';
+                stopBtn.style.display = 'none';
+            }
+        }
+    }
+</script>
+
+<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+<script>
+    let scanning = false;
+
+    const video = document.getElementById('video');
+    const startBtn = document.getElementById('start-camera');
+    const stopBtn = document.getElementById('stop-camera');
+    const codigoManual = document.getElementById('codigo-manual');
+    const cantidadInput = document.getElementById('cantidad');
+    const agregarManualBtn = document.getElementById('agregar-manual');
+    const mensajeResultado = document.getElementById('mensaje-resultado');
+
+    // Activar cámara
+    startBtn.addEventListener('click', () => {
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: video,
+                constraints: {
+                    width: 640,
+                    height: 480,
+                    facingMode: "environment"
+                }
+            },
+            decoder: {
+                readers: [
+                    "code_128_reader",
+                    "ean_reader",
+                    "ean_8_reader",
+                    "code_39_reader",
+                    "code_39_vin_reader",
+                    "codabar_reader",
+                    "upc_reader",
+                    "upc_e_reader",
+                    "i2of5_reader"
+                ]
+            },
+            locate: true
+        }, (err) => {
+            if (err) {
+                console.error('Error inicializando Quagga:', err);
+                mostrarMensaje('Error al inicializar el scanner. Usa entrada manual.', 'warning');
+                return;
+            }
+            Quagga.start();
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+            scanning = true;
+        });
+
+        Quagga.onDetected((data) => {
+            if (scanning) {
+                const codigo = data.codeResult.code;
+                codigoManual.value = codigo;
+                const cantidad = parseInt(cantidadInput.value) || 0;
+                if (cantidad >= 0) {
+                    agregarProducto(codigo, cantidad);
+                }
+            }
+        });
+    });
+
+    // Desactivar cámara
+    stopBtn.addEventListener('click', () => {
+        scanning = false;
+        if (Quagga) {
+            Quagga.stop();
+        }
+        startBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
+    });
+
+    // Búsqueda de productos mientras se escribe
+    let timeoutBusqueda = null;
+    const sugerenciasDiv = document.getElementById('sugerencias-productos');
+    let productoSeleccionadoId = null;
+
+    codigoManual.addEventListener('input', (e) => {
+        const busqueda = e.target.value.trim();
+        productoSeleccionadoId = null;
+        
+        // Limpiar timeout anterior
+        if (timeoutBusqueda) {
+            clearTimeout(timeoutBusqueda);
+        }
+        
+        // Si hay menos de 2 caracteres, ocultar sugerencias
+        if (busqueda.length < 2) {
+            sugerenciasDiv.style.display = 'none';
+            return;
+        }
+        
+        // Esperar 300ms antes de buscar (debounce)
+        timeoutBusqueda = setTimeout(() => {
+            buscarProductos(busqueda);
+        }, 300);
+    });
+
+    // Función para buscar productos
+    function buscarProductos(busqueda) {
+        fetch(`{% url 'conteo:buscar_producto' %}?busqueda=${encodeURIComponent(busqueda)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.unico) {
+                        // Si hay un solo resultado, mostrarlo en las sugerencias para que el usuario lo seleccione
+                        mostrarSugerencias([data.producto]);
+                    } else {
+                        // Mostrar múltiples resultados
+                        mostrarSugerencias(data.productos);
+                    }
+                } else {
+                    sugerenciasDiv.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error en búsqueda:', error);
+                sugerenciasDiv.style.display = 'none';
+            });
+    }
+
+    // Mostrar sugerencias
+    function mostrarSugerencias(productos) {
+        sugerenciasDiv.innerHTML = '';
+        
+        productos.forEach(producto => {
+            const item = document.createElement('a');
+            item.href = '#';
+            item.className = 'list-group-item list-group-item-action';
+            const imagenHtml = producto.imagen ? 
+                `<img src="${producto.imagen}" alt="${producto.nombre}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 0.5rem;">` :
+                `<div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px; margin-right: 0.5rem;"><i class="bi bi-image text-muted"></i></div>`;
+            
+            item.innerHTML = `
+                <div class="d-flex align-items-center">
+                    ${imagenHtml}
+                    <div class="flex-grow-1">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                ${producto.nombre}
+                                ${producto.atributo ? `<span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">${producto.atributo}</span>` : ''}
+                            </h6>
+                            <small>${producto.codigo_barras}</small>
+                        </div>
+                        <p class="mb-1 small text-muted">${producto.categoria || 'Sin categoría'}</p>
+                    </div>
+                </div>
+            `;
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                productoSeleccionadoId = producto.id;
+                codigoManual.value = `${producto.nombre} (${producto.codigo_barras})`;
+                sugerenciasDiv.style.display = 'none';
+                cantidadInput.focus();
+            });
+            sugerenciasDiv.appendChild(item);
+        });
+        
+        sugerenciasDiv.style.display = 'block';
+    }
+
+    // Ocultar sugerencias al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!codigoManual.contains(e.target) && !sugerenciasDiv.contains(e.target)) {
+            sugerenciasDiv.style.display = 'none';
+        }
+    });
+
+    // Agregar producto manualmente
+    agregarManualBtn.addEventListener('click', () => {
+        const cantidad = parseInt(cantidadInput.value) || 0;
+        if (cantidad < 0) {
+            mostrarMensaje('La cantidad no puede ser negativa', 'danger');
+            return;
+        }
+        if (productoSeleccionadoId) {
+            agregarProductoPorId(productoSeleccionadoId, cantidad);
+        } else {
+            const busqueda = codigoManual.value.trim();
+            if (busqueda) {
+                agregarProducto(busqueda, cantidad);
+            }
+        }
+    });
+
+    // Enter en el campo de código
+    codigoManual.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (sugerenciasDiv.style.display === 'block') {
+                // Si hay sugerencias visibles, seleccionar la primera
+                const primerItem = sugerenciasDiv.querySelector('.list-group-item');
+                if (primerItem) {
+                    primerItem.click();
+                }
+            } else {
+                agregarManualBtn.click();
+            }
+        }
+    });
+
+    // Función para agregar producto por ID
+    function agregarProductoPorId(productoId, cantidad) {
+        fetch(`{% url 'conteo:agregar_item' conteo.pk %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `producto_id=${productoId}&cantidad=${cantidad}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarMensaje(data.mensaje, 'success');
+                actualizarTabla(data.producto, data.producto.cantidad, data.item_id);
+                codigoManual.value = '';
+                cantidadInput.value = 0;
+                productoSeleccionadoId = null;
+                codigoManual.focus();
+            } else {
+                mostrarMensaje(data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarMensaje('Error al agregar producto', 'danger');
+        });
+    }
+
+    // Función para agregar producto por búsqueda
+    function agregarProducto(busqueda, cantidad) {
+        fetch(`{% url 'conteo:agregar_item' conteo.pk %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `busqueda=${encodeURIComponent(busqueda)}&cantidad=${cantidad}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarMensaje(data.mensaje, 'success');
+                // Actualizar tabla
+                actualizarTabla(data.producto, data.producto.cantidad, data.item_id);
+                cantidadInput.value = 0;
+            } else {
+                mostrarMensaje(data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarMensaje('Error al agregar producto', 'danger');
+        });
+    }
+
+    // Actualizar tabla de items - Versión compacta
+    function actualizarTabla(producto, cantidad, itemId) {
+        const tbody = document.getElementById('items-table');
+        const itemsMobile = document.getElementById('items-mobile');
+        let row = document.getElementById(`item-${itemId || producto.codigo_barras}`);
+        let cardMobile = document.getElementById(`item-mobile-${itemId || producto.codigo_barras}`);
+        
+        const codigoCorto = producto.codigo_barras.length > 12 ? producto.codigo_barras.substring(0, 12) + '...' : producto.codigo_barras;
+        const nombreCorto = producto.nombre.split(' ').slice(0, 3).join(' ');
+        
+        if (row) {
+            // Actualizar cantidad existente en tabla (columna 4 porque ahora hay imagen)
+            row.querySelector('td:nth-child(4)').innerHTML = `<span class="badge bg-primary">${cantidad}</span>`;
+        } else if (tbody) {
+            // Agregar nueva fila en tabla (compacta)
+            const newRow = document.createElement('tr');
+            newRow.id = `item-${itemId || producto.codigo_barras}`;
+            newRow.style.cursor = 'pointer';
+            newRow.onclick = () => newRow.querySelector('.eliminar-item')?.click();
+            const imagenHtml = producto.imagen ? 
+                `<img src="${producto.imagen}" alt="${producto.nombre}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">` :
+                `<div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px;"><i class="bi bi-image text-muted" style="font-size: 0.75rem;"></i></div>`;
+            const atributoHtml = producto.atributo ? `<span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">${producto.atributo}</span>` : '';
+            
+            newRow.innerHTML = `
+                <td style="padding: 0.3rem;">${imagenHtml}</td>
+                <td style="padding: 0.4rem;"><small class="text-muted">${codigoCorto}</small></td>
+                <td style="padding: 0.4rem;">${nombreCorto}${atributoHtml}</td>
+                <td style="padding: 0.4rem;" class="text-center"><span class="badge bg-primary">${cantidad}</span></td>
+                <td style="padding: 0.2rem;" class="text-center">
+                    <button class="btn btn-sm btn-danger eliminar-item p-1" data-item-id="${itemId || producto.codigo_barras}" style="min-width: 28px; height: 28px; padding: 0;" onclick="event.stopPropagation()">
+                        <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                    </button>
+                </td>
+            `;
+            tbody.insertBefore(newRow, tbody.firstChild);
+        }
+        
+        // Actualizar o agregar card móvil (compacta)
+        if (cardMobile) {
+            cardMobile.querySelector('.badge').textContent = cantidad;
+        } else if (itemsMobile) {
+            const itemList = itemsMobile.querySelector('.item-list');
+            if (itemList) {
+                const newCard = document.createElement('div');
+                newCard.className = 'item-card-compact';
+                newCard.id = `item-mobile-${itemId || producto.codigo_barras}`;
+                const codigoMobile = producto.codigo_barras.length > 15 ? producto.codigo_barras.substring(0, 15) + '...' : producto.codigo_barras;
+                const imagenHtml = producto.imagen ? 
+                    `<img src="${producto.imagen}" alt="${producto.nombre}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">` :
+                    `<div class="bg-light d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; border-radius: 6px; flex-shrink: 0;"><i class="bi bi-image text-muted" style="font-size: 1rem;"></i></div>`;
+                
+                newCard.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center p-2" style="border-bottom: 1px solid #e9ecef;">
+                        <div class="d-flex align-items-center gap-2" style="flex: 1; min-width: 0;">
+                            ${imagenHtml}
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary" style="font-size: 0.9rem; min-width: 35px;">${cantidad}</span>
+                                    <div style="flex: 1; overflow: hidden;">
+                                        <strong style="font-size: 0.9rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            ${producto.nombre}
+                                            ${producto.atributo ? `<span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">${producto.atributo}</span>` : ''}
+                                        </strong>
+                                        <small class="text-muted" style="font-size: 0.75rem;">${codigoMobile}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-danger eliminar-item p-1 ms-2" data-item-id="${itemId || producto.codigo_barras}" style="min-width: 32px; height: 32px; flex-shrink: 0;">
+                            <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
+                        </button>
+                    </div>
+                `;
+                itemList.insertBefore(newCard, itemList.firstChild);
+            }
+        }
+        
+        // Recargar página después de 1 segundo para actualizar estadísticas
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+
+    // Mostrar mensaje con animación mejorada
+    function mostrarMensaje(mensaje, tipo) {
+        const iconos = {
+            'success': 'check-circle-fill',
+            'danger': 'exclamation-triangle-fill',
+            'warning': 'exclamation-triangle-fill',
+            'info': 'info-circle-fill'
+        };
+        
+        mensajeResultado.className = `alert alert-${tipo}`;
+        mensajeResultado.innerHTML = `<i class="bi bi-${iconos[tipo] || 'info-circle'}"></i> ${mensaje}`;
+        mensajeResultado.style.display = 'block';
+        mensajeResultado.style.opacity = '0';
+        mensajeResultado.style.transform = 'translateY(-10px)';
+        mensajeResultado.style.transition = 'none';
+        
+        // Forzar reflow
+        mensajeResultado.offsetHeight;
+        
+        // Animación de entrada
+        setTimeout(() => {
+            mensajeResultado.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            mensajeResultado.style.opacity = '1';
+            mensajeResultado.style.transform = 'translateY(0)';
+        }, 10);
+        
+        // Ocultar después de 4 segundos con animación
+        setTimeout(() => {
+            mensajeResultado.style.opacity = '0';
+            mensajeResultado.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+                mensajeResultado.style.display = 'none';
+            }, 300);
+        }, 4000);
+    }
+
+    // Eliminar item
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.eliminar-item')) {
+            e.preventDefault();
+            const button = e.target.closest('.eliminar-item');
+            const itemId = button.dataset.itemId;
+            
+            if (confirm('¿Eliminar este item del conteo?')) {
+                try {
+                    // Crear formulario para enviar POST
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/conteo/item/${itemId}/eliminar/`;
+                    
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = 'csrfmiddlewaretoken';
+                    csrfToken.value = '{{ csrf_token }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                } catch (error) {
+                    console.error('Error al eliminar:', error);
+                    mostrarMensaje('Error al eliminar el item', 'danger');
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+

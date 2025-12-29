@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Registro - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white text-center">
+                    <h3><i class="bi bi-person-plus"></i> Registro de Usuario</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-person-check"></i> Registrarse
+                            </button>
+                            <a href="{% url 'usuarios:login' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver al Login
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

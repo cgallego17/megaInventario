@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Mega Inventario{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.2s;
+        border-left: 4px solid;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .stat-card.primary { border-left-color: #0d6efd; }
+    .stat-card.success { border-left-color: #198754; }
+    .stat-card.warning { border-left-color: #ffc107; }
+    .stat-card.info { border-left-color: #0dcaf0; }
+    .stat-card.danger { border-left-color: #dc3545; }
+    
+    .progress-bar-animated {
+        animation: progress-bar-stripes 1s linear infinite;
+    }
+    
+    .alert-card {
+        border-left: 4px solid;
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .activity-item {
+        border-left: 3px solid;
+        padding-left: 15px;
+        margin-bottom: 10px;
+        transition: all 0.2s;
+    }
+    
+    .activity-item:hover {
+        background-color: #f8f9fa;
+        padding-left: 20px;
+    }
+    
+    .activity-item.success { border-left-color: #198754; }
+    .activity-item.primary { border-left-color: #0d6efd; }
+    .activity-item.info { border-left-color: #0dcaf0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Título -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
+        <small class="text-muted">Última actualización: {{ "now"|date:"d/m/Y H:i" }}</small>
+    </div>
+
+    <!-- Estadísticas generales -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Productos</h6>
+                            <h3 class="mb-0">{{ total_productos }}</h3>
+                        </div>
+                        <div class="text-primary" style="font-size: 2.5rem;">
+                            <i class="bi bi-box"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Conteos</h6>
+                            <h3 class="mb-0">{{ total_conteos }}</h3>
+                            <small class="text-success">{{ conteos_finalizados }} finalizados</small>
+                        </div>
+                        <div class="text-success" style="font-size: 2.5rem;">
+                            <i class="bi bi-clipboard-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">En Proceso</h6>
+                            <h3 class="mb-0">{{ conteos_en_proceso }}</h3>
+                            <small class="text-warning">Conteos activos</small>
+                        </div>
+                        <div class="text-warning" style="font-size: 2.5rem;">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Movimientos</h6>
+                            <h3 class="mb-0">{{ total_movimientos }}</h3>
+                            <small class="text-info">Total registrados</small>
+                        </div>
+                        <div class="text-info" style="font-size: 2.5rem;">
+                            <i class="bi bi-activity"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Progreso de Conteos -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Progreso de Conteos en Proceso</h5>
+                </div>
+                <div class="card-body">
+                    {% if progreso_conteos %}
+                        {% for item in progreso_conteos %}
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'conteo:detalle_conteo' item.conteo.id %}" class="text-decoration-none">
+                                            {{ item.conteo.nombre }}
+                                        </a>
+                                    </h6>
+                                    <small class="text-muted">
+                                        <span class="badge bg-primary">Conteo {{ item.conteo.numero_conteo }}</span>
+                                        {{ item.items_contados }} / {{ item.total_productos_sistema }} productos contados
+                                        {% if item.items_con_cantidad < item.items_contados %}
+                                            <br><small>({{ item.items_con_cantidad }} con cantidad > 0, {{ item.items_con_cero }} con cantidad 0)</small>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <strong class="text-primary">{{ item.porcentaje }}%</strong>
+                                    <br>
+                                    <small class="text-muted">{{ item.total_cantidad }} unidades</small>
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated 
+                                    {% if item.porcentaje >= 75 %}bg-success
+                                    {% elif item.porcentaje >= 50 %}bg-info
+                                    {% elif item.porcentaje >= 25 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" 
+                                    role="progressbar" 
+                                    style="width: {{ item.porcentaje }}%"
+                                    aria-valuenow="{{ item.porcentaje }}" 
+                                    aria-valuemin="0" 
+                                    aria-valuemax="100">
+                                    {{ item.porcentaje }}%
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No hay conteos en proceso</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Alertas</h5>
+                </div>
+                <div class="card-body">
+                    {% if alertas %}
+                        {% for alerta in alertas %}
+                        <div class="alert alert-{{ alerta.tipo }} alert-card mb-3" role="alert">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-{{ alerta.icono }} me-2" style="font-size: 1.5rem;"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="alert-heading mb-1">{{ alerta.titulo }}</h6>
+                                    <p class="mb-2">{{ alerta.mensaje }}</p>
+                                    {% if alerta.link %}
+                                    <a href="{{ alerta.link }}" class="btn btn-sm btn-outline-{{ alerta.tipo }}">
+                                        {{ alerta.link_texto }}
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>¡Todo en orden!</strong> No hay alertas pendientes.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Actividades Recientes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Actividades Recientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if actividades %}
+                        <div class="list-group list-group-flush">
+                            {% for actividad in actividades %}
+                            <div class="activity-item {{ actividad.color }} mb-3">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-{{ actividad.icono }} me-2 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1">{{ actividad.mensaje }}</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i> {{ actividad.fecha|timesince }} atrás
+                                        </small>
+                                    </div>
+                                    {% if actividad.link %}
+                                    <a href="{{ actividad.link }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No hay actividades recientes</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas por Conteo -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-ol"></i> Estadísticas por Conteo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for num, stats in conteos_por_numero.items %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h4 class="text-primary mb-2">Conteo {{ num }}</h4>
+                                    <h2 class="mb-1">{{ stats.total }}</h2>
+                                    <small class="text-muted">Total</small>
+                                    <hr>
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <span class="badge bg-warning">{{ stats.en_proceso }}</span>
+                                            <br><small>En proceso</small>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-success">{{ stats.finalizados }}</span>
+                                            <br><small>Finalizados</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Top Productos -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-star"></i> Top 5 Productos Más Contados</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_productos %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Producto</th>
+                                        <th class="text-center">Veces Contado</th>
+                                        <th class="text-center">Total Unidades</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for producto in top_productos %}
+                                    <tr>
+                                        <td><strong>{{ forloop.counter }}</strong></td>
+                                        <td>
+                                            <strong>{{ producto.producto__nombre }}</strong><br>
+                                            <small class="text-muted">{{ producto.producto__atributo|default:"-" }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">{{ producto.veces_contado }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ producto.total_contado }}</strong>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No hay datos disponibles</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Usuarios -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-trophy"></i> Top 5 Usuarios Más Activos (24h)</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_usuarios %}
+                        <div class="list-group">
+                            {% for usuario in top_usuarios %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    <strong>{{ usuario.usuario__username }}</strong>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">
+                                    {{ usuario.total_movimientos }} movimientos
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No hay actividad en las últimas 24 horas</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

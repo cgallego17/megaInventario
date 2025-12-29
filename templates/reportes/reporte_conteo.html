@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Reporte de Conteo - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-clipboard-check"></i> Reporte de Conteo</h1>
+        <a href="{% url 'reportes:exportar_conteo' %}" class="btn btn-success">
+            <i class="bi bi-download"></i> Exportar CSV
+        </a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Inicio</label>
+                    <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Fin</label>
+                    <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="en_proceso" {% if estado == 'en_proceso' %}selected{% endif %}>En Proceso</option>
+                        <option value="finalizado" {% if estado == 'finalizado' %}selected{% endif %}>Finalizado</option>
+                        <option value="cancelado" {% if estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">Total Conteos</h5>
+                    <h2>{{ total_conteos }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">Finalizados</h5>
+                    <h2>{{ conteos_finalizados }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">Total Items</h5>
+                    <h2>{{ total_items }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="text-muted">Total Cantidad</h5>
+                    <h2>{{ total_cantidad }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Usuario 1</th>
+                            <th>Usuario 2</th>
+                            <th>Estado</th>
+                            <th>Fecha Inicio</th>
+                            <th>Fecha Fin</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conteo in conteos %}
+                        <tr>
+                            <td>{{ conteo.nombre }}</td>
+                            <td>{{ conteo.usuario_1.username|default:"-" }}</td>
+                            <td>{{ conteo.usuario_2.username|default:"-" }}</td>
+                            <td>
+                                {% if conteo.estado == 'en_proceso' %}
+                                    <span class="badge bg-warning">En Proceso</span>
+                                {% elif conteo.estado == 'finalizado' %}
+                                    <span class="badge bg-success">Finalizado</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Cancelado</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ conteo.fecha_inicio|date:"d/m/Y H:i" }}</td>
+                            <td>{{ conteo.fecha_fin|date:"d/m/Y H:i"|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'reportes:diferencias' conteo.pk %}" class="btn btn-sm btn-info">
+                                    <i class="bi bi-graph-up"></i> Diferencias
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No hay conteos</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Producto - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h3><i class="bi bi-exclamation-triangle"></i> Eliminar Producto</h3>
+                </div>
+                <div class="card-body">
+                    <p>¿Estás seguro de que deseas eliminar el siguiente producto?</p>
+                    <div class="alert alert-warning">
+                        <strong>{{ producto.nombre }}</strong><br>
+                        <small>Código: {{ producto.codigo_barras }}</small>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Sí, eliminar
+                        </button>
+                        <a href="{% url 'productos:lista' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

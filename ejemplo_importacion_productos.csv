@@ -1,0 +1,5 @@
+codigo_barras,nombre,descripcion,categoria,precio,stock_actual,unidad_medida
+7501234567890,Producto Ejemplo 1,Descripción del producto 1,Electrónicos,150.50,25,UN
+7501234567891,Producto Ejemplo 2,Descripción del producto 2,Ropa,75.00,50,UN
+7501234567892,Producto Ejemplo 3,Descripción del producto 3,Alimentos,45.75,100,UN
+

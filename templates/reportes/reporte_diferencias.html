@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Reporte de Diferencias - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1><i class="bi bi-arrow-left-right"></i> Reporte de Diferencias</h1>
+    <p class="text-muted">Sesión: {{ sesion.nombre }}</p>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Atributo</th>
+                            <th>Stock Sistema</th>
+                            <th>Conteo Físico</th>
+                            <th>Diferencia</th>
+                            <th>% Diferencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for diff in diferencias %}
+                        <tr>
+                            <td>{{ diff.producto.codigo_barras }}</td>
+                            <td>{{ diff.producto.nombre }}</td>
+                            <td>{{ diff.producto.atributo|default:"-" }}</td>
+                            <td>{{ diff.stock_sistema }}</td>
+                            <td>{{ diff.conteo_fisico }}</td>
+                            <td>
+                                {% if diff.diferencia > 0 %}
+                                    <span class="badge bg-success">+{{ diff.diferencia }}</span>
+                                {% elif diff.diferencia < 0 %}
+                                    <span class="badge bg-danger">{{ diff.diferencia }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">0</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ diff.porcentaje|floatformat:2 }}%</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No hay diferencias registradas</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

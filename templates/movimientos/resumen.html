@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+
+{% block title %}Resumen de Movimientos - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-graph-up"></i> Resumen de Movimientos</h1>
+        <a href="{% url 'movimientos:lista' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <!-- Estadísticas generales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ total_movimientos }}</h5>
+                    <p class="card-text text-muted">Total Movimientos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">{{ total_usuarios }}</h5>
+                    <p class="card-text text-muted">Usuarios</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ total_productos }}</h5>
+                    <p class="card-text text-muted">Productos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">{{ total_conteos }}</h5>
+                    <p class="card-text text-muted">Conteos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Movimientos por tipo -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Por Tipo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-center">Total Cambio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in por_tipo %}
+                                <tr>
+                                    <td>
+                                        {% if item.tipo == 'agregar' %}
+                                            <span class="badge bg-success">{{ item.get_tipo_display|default:item.tipo|title }}</span>
+                                        {% elif item.tipo == 'modificar' %}
+                                            <span class="badge bg-warning">{{ item.get_tipo_display|default:item.tipo|title }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ item.get_tipo_display|default:item.tipo|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ item.total }}</td>
+                                    <td class="text-center">
+                                        {% if item.cantidad_total > 0 %}
+                                            <span class="text-success">+{{ item.cantidad_total }}</span>
+                                        {% elif item.cantidad_total < 0 %}
+                                            <span class="text-danger">{{ item.cantidad_total }}</span>
+                                        {% else %}
+                                            <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Usuarios -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-trophy"></i> Top Usuarios</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th class="text-center">Movimientos</th>
+                                    <th class="text-center">Cantidad Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in top_usuarios %}
+                                <tr>
+                                    <td>{{ item.usuario__username }}</td>
+                                    <td class="text-center">{{ item.total }}</td>
+                                    <td class="text-center">
+                                        {% if item.cantidad_total > 0 %}
+                                            <span class="text-success">+{{ item.cantidad_total }}</span>
+                                        {% elif item.cantidad_total < 0 %}
+                                            <span class="text-danger">{{ item.cantidad_total }}</span>
+                                        {% else %}
+                                            <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Productos -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-star"></i> Top Productos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Atributo</th>
+                                    <th>Código</th>
+                                    <th class="text-center">Movimientos</th>
+                                    <th class="text-center">Cantidad Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in top_productos %}
+                                <tr>
+                                    <td><strong>{{ item.producto__nombre }}</strong></td>
+                                    <td><small class="text-muted">{{ item.producto__atributo|default:"-" }}</small></td>
+                                    <td><small class="text-muted">{{ item.producto__codigo_barras }}</small></td>
+                                    <td class="text-center">{{ item.total }}</td>
+                                    <td class="text-center">
+                                        {% if item.cantidad_total > 0 %}
+                                            <span class="text-success">+{{ item.cantidad_total }}</span>
+                                        {% elif item.cantidad_total < 0 %}
+                                            <span class="text-danger">{{ item.cantidad_total }}</span>
+                                        {% else %}
+                                            <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movimientos recientes -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-clock-history"></i> Movimientos Recientes</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Conteo</th>
+                            <th>Parejas</th>
+                            <th>Producto</th>
+                            <th>Atributo</th>
+                            <th>Código</th>
+                            <th>Código Barras</th>
+                            <th>Usuario</th>
+                            <th>Tipo</th>
+                            <th>Cant. Anterior</th>
+                            <th>Cant. Nueva</th>
+                            <th>Cambio</th>
+                            <th>Item Conteo ID</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in movimientos_recientes %}
+                        <tr>
+                            <td>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i:s" }}</td>
+                            <td>
+                                <a href="{% url 'movimientos:por_conteo' movimiento.conteo.id %}">
+                                    <span class="badge bg-primary">Conteo {{ movimiento.conteo.numero_conteo }}</span><br>
+                                    <small>{{ movimiento.conteo.nombre }}</small>
+                                </a>
+                            </td>
+                            <td>
+                                {% if movimiento.conteo.parejas.all %}
+                                    {% for pareja in movimiento.conteo.parejas.all %}
+                                        <span class="badge bg-{{ pareja.color }} mb-1 d-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                    {% endfor %}
+                                {% elif movimiento.conteo.usuario_1 and movimiento.conteo.usuario_2 %}
+                                    <small>{{ movimiento.conteo.usuario_1.username }} & {{ movimiento.conteo.usuario_2.username }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ movimiento.producto.nombre }}</strong>
+                            </td>
+                            <td>{{ movimiento.producto.atributo|default:"-" }}</td>
+                            <td>{{ movimiento.producto.codigo|default:"-" }}</td>
+                            <td><small>{{ movimiento.producto.codigo_barras }}</small></td>
+                            <td>
+                                <a href="{% url 'movimientos:por_usuario' movimiento.usuario.id %}">
+                                    {{ movimiento.usuario.username }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if movimiento.tipo == 'agregar' %}
+                                    <span class="badge bg-success">{{ movimiento.get_tipo_display }}</span>
+                                {% elif movimiento.tipo == 'modificar' %}
+                                    <span class="badge bg-warning">{{ movimiento.get_tipo_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ movimiento.get_tipo_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movimiento.cantidad_anterior }}</td>
+                            <td>{{ movimiento.cantidad_nueva }}</td>
+                            <td>
+                                {% if movimiento.cantidad_cambiada > 0 %}
+                                    <span class="text-success">+{{ movimiento.cantidad_cambiada }}</span>
+                                {% elif movimiento.cantidad_cambiada < 0 %}
+                                    <span class="text-danger">{{ movimiento.cantidad_cambiada }}</span>
+                                {% else %}
+                                    <span class="text-muted">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if movimiento.item_conteo %}
+                                    <small>{{ movimiento.item_conteo.id }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if movimiento.observaciones %}
+                                    <small>{{ movimiento.observaciones }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="14" class="text-center">No hay movimientos recientes</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

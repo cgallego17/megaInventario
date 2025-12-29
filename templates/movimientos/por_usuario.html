@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Movimientos - {{ usuario.username }} - Mega Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="bi bi-activity"></i> Movimientos del Usuario</h1>
+            <p class="text-muted mb-0">{{ usuario.username }}</p>
+        </div>
+        <a href="{% url 'movimientos:lista' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ total_movimientos }}</h5>
+                    <p class="card-text text-muted">Total Movimientos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">{{ movimientos_por_conteo|length }}</h5>
+                    <p class="card-text text-muted">Conteos Participados</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ movimientos_por_producto|length }}</h5>
+                    <p class="card-text text-muted">Productos Contados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Movimientos por Conteo -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Por Conteo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Conteo</th>
+                                    <th class="text-center">Movimientos</th>
+                                    <th class="text-center">Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in movimientos_por_conteo %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">Conteo {{ item.conteo__numero_conteo }}</span><br>
+                                        <small>{{ item.conteo__nombre|truncatewords:2 }}</small>
+                                    </td>
+                                    <td class="text-center">{{ item.total }}</td>
+                                    <td class="text-center">
+                                        {% if item.cantidad_total > 0 %}
+                                            <span class="text-success">+{{ item.cantidad_total }}</span>
+                                        {% elif item.cantidad_total < 0 %}
+                                            <span class="text-danger">{{ item.cantidad_total }}</span>
+                                        {% else %}
+                                            <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Movimientos por Producto -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-box"></i> Por Producto</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Atributo</th>
+                                    <th class="text-center">Movimientos</th>
+                                    <th class="text-center">Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in movimientos_por_producto %}
+                                <tr>
+                                    <td>
+                                        <small>{{ item.producto__nombre|truncatewords:2 }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ item.producto__atributo|default:"-" }}</small>
+                                    </td>
+                                    <td class="text-center">{{ item.total }}</td>
+                                    <td class="text-center">
+                                        {% if item.cantidad_total > 0 %}
+                                            <span class="text-success">+{{ item.cantidad_total }}</span>
+                                        {% elif item.cantidad_total < 0 %}
+                                            <span class="text-danger">{{ item.cantidad_total }}</span>
+                                        {% else %}
+                                            <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de movimientos -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Historial de Movimientos</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Conteo</th>
+                            <th>Parejas</th>
+                            <th>Producto</th>
+                            <th>Atributo</th>
+                            <th>Código</th>
+                            <th>Código Barras</th>
+                            <th>Tipo</th>
+                            <th>Cant. Anterior</th>
+                            <th>Cant. Nueva</th>
+                            <th>Cambio</th>
+                            <th>Item Conteo ID</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in page_obj %}
+                        <tr>
+                            <td>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i:s" }}</td>
+                            <td>
+                                <a href="{% url 'movimientos:por_conteo' movimiento.conteo.id %}">
+                                    <span class="badge bg-primary">Conteo {{ movimiento.conteo.numero_conteo }}</span><br>
+                                    <small>{{ movimiento.conteo.nombre }}</small>
+                                </a>
+                            </td>
+                            <td>
+                                {% if movimiento.conteo.parejas.all %}
+                                    {% for pareja in movimiento.conteo.parejas.all %}
+                                        <span class="badge bg-{{ pareja.color }} mb-1 d-block">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                                    {% endfor %}
+                                {% elif movimiento.conteo.usuario_1 and movimiento.conteo.usuario_2 %}
+                                    <small>{{ movimiento.conteo.usuario_1.username }} & {{ movimiento.conteo.usuario_2.username }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ movimiento.producto.nombre }}</strong>
+                            </td>
+                            <td>{{ movimiento.producto.atributo|default:"-" }}</td>
+                            <td>{{ movimiento.producto.codigo|default:"-" }}</td>
+                            <td><small>{{ movimiento.producto.codigo_barras }}</small></td>
+                            <td>
+                                {% if movimiento.tipo == 'agregar' %}
+                                    <span class="badge bg-success">{{ movimiento.get_tipo_display }}</span>
+                                {% elif movimiento.tipo == 'modificar' %}
+                                    <span class="badge bg-warning">{{ movimiento.get_tipo_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ movimiento.get_tipo_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movimiento.cantidad_anterior }}</td>
+                            <td>{{ movimiento.cantidad_nueva }}</td>
+                            <td>
+                                {% if movimiento.cantidad_cambiada > 0 %}
+                                    <span class="text-success">+{{ movimiento.cantidad_cambiada }}</span>
+                                {% elif movimiento.cantidad_cambiada < 0 %}
+                                    <span class="text-danger">{{ movimiento.cantidad_cambiada }}</span>
+                                {% else %}
+                                    <span class="text-muted">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if movimiento.item_conteo %}
+                                    <small>{{ movimiento.item_conteo.id }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if movimiento.observaciones %}
+                                    <small>{{ movimiento.observaciones }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="13" class="text-center">No hay movimientos registrados para este usuario</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active">
+                        <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
