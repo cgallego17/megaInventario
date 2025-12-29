@@ -57,7 +57,7 @@ def lista_productos(request):
     # Filtros
     marca_filtro = request.GET.get('marca', '').strip()
     if marca_filtro:
-        productos = productos.filter(marca__icontains=marca_filtro)
+        productos = productos.filter(marca__iexact=marca_filtro)
     
     categoria_filtro = request.GET.get('categoria', '').strip()
     if categoria_filtro:
@@ -454,7 +454,7 @@ def asignar_multiples_parejas(request):
     # Filtros adicionales
     marca_filtro = request.GET.get('marca', '').strip()
     if marca_filtro:
-        productos = productos.filter(marca__icontains=marca_filtro)
+        productos = productos.filter(marca__iexact=marca_filtro)
     
     categoria_filtro = request.GET.get('categoria', '').strip()
     if categoria_filtro:
@@ -482,6 +482,18 @@ def asignar_multiples_parejas(request):
     categorias = Producto.objects.exclude(categoria__isnull=True).exclude(categoria='').values_list('categoria', flat=True).distinct().order_by('categoria')
     atributos = Producto.objects.exclude(atributo__isnull=True).exclude(atributo='').values_list('atributo', flat=True).distinct().order_by('atributo')
     
+    # Calcular qué marcas tienen productos asignados
+    # Obtener marcas de productos que tienen al menos una pareja asignada
+    from django.db.models import Count
+    marcas_con_asignaciones = set(
+        Producto.objects.exclude(marca__isnull=True)
+        .exclude(marca='')
+        .annotate(num_parejas=Count('parejas_asignadas'))
+        .filter(num_parejas__gt=0)
+        .values_list('marca', flat=True)
+        .distinct()
+    )
+    
     # Paginación
     paginator = Paginator(productos, 50)
     page_number = request.GET.get('page')
@@ -496,6 +508,7 @@ def asignar_multiples_parejas(request):
         'atributo_filtro': atributo_filtro,
         'orden': orden,
         'marcas': marcas,
+        'marcas_con_asignaciones': marcas_con_asignaciones,
         'categorias': categorias,
         'atributos': atributos,
     })

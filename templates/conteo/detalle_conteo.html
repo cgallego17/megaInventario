@@ -1086,6 +1086,19 @@
     const agregarManualBtn = document.getElementById('agregar-manual');
     const mensajeResultado = document.getElementById('mensaje-resultado');
 
+    // Funciones para deshabilitar/habilitar controles durante el guardado
+    function deshabilitarControles() {
+        cantidadInput.disabled = true;
+        agregarManualBtn.disabled = true;
+        agregarManualBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> <span class="d-none d-sm-inline">Guardando...</span>';
+    }
+
+    function habilitarControles() {
+        cantidadInput.disabled = false;
+        agregarManualBtn.disabled = false;
+        agregarManualBtn.innerHTML = '<i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Agregar</span>';
+    }
+
     // Función para vibrar el dispositivo
     function vibrarDispositivo() {
         if (navigator.vibrate) {
@@ -1266,6 +1279,8 @@
                 return;
             }
             
+            // Deshabilitar controles antes de agregar
+            deshabilitarControles();
             agregarProducto(codigo, cantidad);
             
             // Reiniciar scanner después de 1.5 segundos
@@ -1410,6 +1425,8 @@
             cantidadInput.focus();
             return;
         }
+        // Deshabilitar controles antes de agregar
+        deshabilitarControles();
         if (productoSeleccionadoId) {
             agregarProductoPorId(productoSeleccionadoId, cantidad);
         } else {
@@ -1417,6 +1434,7 @@
             if (busqueda) {
                 agregarProducto(busqueda, cantidad);
             } else {
+                habilitarControles(); // Rehabilitar si hay error de validación
                 mostrarMensaje('Debe buscar un producto primero', 'danger');
                 codigoManual.focus();
             }
@@ -1473,6 +1491,9 @@
         .catch(error => {
             console.error('Error:', error);
             mostrarMensaje('Error al agregar producto', 'danger');
+        })
+        .finally(() => {
+            habilitarControles();
         });
     }
 
@@ -1501,6 +1522,9 @@
         .catch(error => {
             console.error('Error:', error);
             mostrarMensaje('Error al agregar producto', 'danger');
+        })
+        .finally(() => {
+            habilitarControles();
         });
     }
 
