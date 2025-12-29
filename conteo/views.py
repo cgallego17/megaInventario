@@ -144,8 +144,13 @@ def detalle_conteo(request, pk):
         productos_contados_ids = set(items.values_list('producto_id', flat=True))
     
     # Separar productos en contados y no contados
-    productos_contados = productos_asignados.filter(id__in=productos_contados_ids).order_by('marca', 'nombre')
-    productos_no_contados = productos_asignados.exclude(id__in=productos_contados_ids).order_by('marca', 'nombre')
+    if productos_contados_ids:
+        productos_contados = productos_asignados.filter(id__in=productos_contados_ids).order_by('marca', 'nombre')
+        productos_no_contados = productos_asignados.exclude(id__in=productos_contados_ids).order_by('marca', 'nombre')
+    else:
+        # Si no hay productos contados, todos los productos asignados están pendientes
+        productos_contados = productos_asignados.none()
+        productos_no_contados = productos_asignados.order_by('marca', 'nombre')
     
     return render(request, 'conteo/detalle_conteo.html', {
         'conteo': conteo,

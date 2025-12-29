@@ -1875,6 +1875,82 @@
         }
     });
     {% endif %}
+    
+    // Búsqueda en productos pendientes
+    const buscarPendientes = document.getElementById('buscar-pendientes');
+    if (buscarPendientes) {
+        buscarPendientes.addEventListener('input', function(e) {
+            const busqueda = e.target.value.toLowerCase().trim();
+            const filas = document.querySelectorAll('#tbody-pendientes tr');
+            
+            let visibleCount = 0;
+            filas.forEach(fila => {
+                const texto = fila.textContent.toLowerCase();
+                if (texto.includes(busqueda)) {
+                    fila.style.display = '';
+                    visibleCount++;
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+            
+            // Mostrar mensaje si no hay resultados
+            const tbody = document.getElementById('tbody-pendientes');
+            let mensajeNoResultados = tbody.querySelector('.no-resultados');
+            if (busqueda && visibleCount === 0) {
+                if (!mensajeNoResultados) {
+                    mensajeNoResultados = document.createElement('tr');
+                    mensajeNoResultados.className = 'no-resultados';
+                    mensajeNoResultados.innerHTML = '<td colspan="5" class="text-center py-3 text-muted">No se encontraron productos pendientes que coincidan con la búsqueda</td>';
+                    tbody.appendChild(mensajeNoResultados);
+                }
+            } else {
+                if (mensajeNoResultados) {
+                    mensajeNoResultados.remove();
+                }
+            }
+        });
+    }
+    
+    // Hacer clickeables las filas de productos pendientes
+    document.addEventListener('click', function(e) {
+        const fila = e.target.closest('.producto-pendiente-row');
+        if (fila) {
+            const codigoBarras = fila.dataset.codigoBarras;
+            const codigo = fila.dataset.codigo;
+            const nombre = fila.dataset.nombre;
+            
+            // Usar código si existe, sino código de barras, sino nombre
+            const busqueda = codigo || codigoBarras || nombre;
+            
+            // Llenar el campo de búsqueda principal
+            const codigoManual = document.getElementById('codigo-manual');
+            if (codigoManual) {
+                codigoManual.value = busqueda;
+                // Disparar el evento input para que busque automáticamente
+                codigoManual.dispatchEvent(new Event('input', { bubbles: true }));
+                // Enfocar el campo de cantidad después de un breve delay
+                setTimeout(() => {
+                    const cantidadInput = document.getElementById('cantidad');
+                    if (cantidadInput) {
+                        cantidadInput.focus();
+                    }
+                }, 100);
+            }
+            
+            // Cerrar el modal
+            const modalElement = document.getElementById('modalEstadoConteo');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+            }
+            
+            // Mostrar mensaje
+            mostrarMensaje(`Producto seleccionado: ${nombre}`, 'success');
+        }
+    });
 </script>
 
 <!-- Modal Estado de Conteo -->
@@ -1958,8 +2034,12 @@
                     </div>
                     <div class="tab-pane fade" id="no-contados" role="tabpanel">
                         {% if productos_no_contados %}
+                            <!-- Barra de búsqueda para productos pendientes -->
+                            <div class="mb-3">
+                                <input type="text" id="buscar-pendientes" class="form-control form-control-sm" placeholder="Buscar productos pendientes..." autocomplete="off">
+                            </div>
                             <div class="table-responsive" style="max-height: 50vh;">
-                                <table class="table table-sm table-hover">
+                                <table class="table table-sm table-hover" id="tabla-pendientes">
                                     <thead class="table-light sticky-top">
                                         <tr>
                                             <th style="width: 60px;">Img</th>
@@ -1969,9 +2049,14 @@
                                             <th class="text-center">Estado</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="tbody-pendientes">
                                         {% for producto in productos_no_contados %}
-                                            <tr>
+                                            <tr class="producto-pendiente-row" 
+                                                style="cursor: pointer;" 
+                                                data-codigo-barras="{{ producto.codigo_barras }}"
+                                                data-codigo="{{ producto.codigo|default:'' }}"
+                                                data-nombre="{{ producto.nombre }}"
+                                                title="Clic para buscar este producto">
                                                 <td>
                                                     {% if producto.imagen %}
                                                         <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
@@ -1981,7 +2066,7 @@
                                                         </div>
                                                     {% endif %}
                                                 </td>
-                                                <td><small>{{ producto.codigo_barras }}</small></td>
+                                                <td><small>{{ producto.codigo|default:producto.codigo_barras }}</small></td>
                                                 <td>
                                                     {{ producto.nombre }}
                                                     {% if producto.atributo %}
