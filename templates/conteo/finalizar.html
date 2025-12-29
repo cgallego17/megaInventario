@@ -3,6 +3,15 @@
 {% block title %}Finalizar Conteo - Mega Inventario{% endblock %}
 
 {% block content %}
+{% if not user.is_superuser and not user.is_staff %}
+<div class="container mt-4">
+    <div class="alert alert-danger">
+        <h4><i class="bi bi-exclamation-triangle"></i> Acceso Denegado</h4>
+        <p>No tienes permisos para finalizar conteos. Solo los administradores pueden realizar esta acción.</p>
+        <a href="{% url 'conteo:lista_conteos' %}" class="btn btn-primary">Volver a la lista</a>
+    </div>
+</div>
+{% else %}
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-6">
@@ -30,5 +39,6 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
