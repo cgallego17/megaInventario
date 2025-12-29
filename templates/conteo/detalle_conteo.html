@@ -242,26 +242,141 @@
         }
     }
     
-    /* Mejoras para input group en móvil */
+    /* Mejoras para input group en móvil - Solo para grupos generales, no scanner */
     @media (max-width: 768px) {
-        .input-group {
+        .input-group:not(.input-group-sm) {
             flex-direction: column;
             gap: 0.75rem;
         }
         
-        .input-group .form-control {
+        .input-group:not(.input-group-sm) .form-control {
             width: 100% !important;
-            margin-bottom: 0;
-            max-width: 100% !important;
+            margin-bottom: 0.5rem;
         }
         
-        .input-group .btn {
+        .input-group:not(.input-group-sm) .btn {
             width: 100%;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-top: 0.5rem;
         }
         
+        /* Header mejorado para móvil */
+        .header-conteo-mobile {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem;
+        }
+        
+        .header-conteo-mobile .d-flex {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .header-conteo-mobile .btn-sm {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        /* Estadísticas mejoradas */
+        .stats-card-mobile {
+            padding: 0.75rem !important;
+        }
+        
+        .stats-card-mobile .row > div {
+            padding: 0.5rem;
+        }
+        
+        .stats-card-mobile .fs-5 {
+            font-size: 1.25rem !important;
+        }
+        
+        /* Scanner mejorado */
+        .scanner-section-mobile {
+            padding: 0.75rem !important;
+        }
+        
+        .scanner-section-mobile .input-group-sm {
+            flex-direction: row !important;
+            gap: 0.25rem;
+            align-items: stretch;
+        }
+        
+        .scanner-section-mobile .input-group-sm input[type="text"] {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.9rem;
+        }
+        
+        .scanner-section-mobile .input-group-sm input[type="number"] {
+            width: 70px;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        .scanner-section-mobile .input-group-sm .btn {
+            width: auto;
+            flex-shrink: 0;
+            padding: 0.5rem 0.75rem;
+            min-height: 44px;
+            font-size: 0.9rem;
+        }
+        
+        /* Items mobile mejorados */
+        .items-mobile {
+            padding: 0.5rem;
+        }
+        
+        .item-card-compact {
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .item-card-compact > div {
+            padding: 0.75rem !important;
+        }
+        
+        /* Progreso mejorado */
+        .progress {
+            height: 24px !important;
+            border-radius: 12px;
+        }
+        
+        .progress-bar {
+            font-size: 0.75rem;
+            line-height: 24px;
+        }
+        
+        /* Botones de acción mejorados */
+        .btn-action-mobile {
+            min-height: 44px;
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+        }
+        
+        /* Sugerencias mejoradas */
+        #sugerencias-productos {
+            max-height: 50vh !important;
+            font-size: 0.9rem;
+        }
+        
+        #sugerencias-productos .list-group-item {
+            padding: 0.75rem;
+        }
+        
+        /* Video scanner mejorado */
+        #video {
+            border-radius: 12px;
+            max-height: 300px;
+        }
+        
+        .scanner-overlay {
+            width: min(200px, 70vw) !important;
+            height: min(200px, 70vw) !important;
+        }
+        
+        /* Sugerencias mejoradas */
         #sugerencias-productos {
             width: 100% !important;
             max-height: 50vh;
@@ -269,6 +384,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             margin-top: 0.5rem;
         }
+    }
         
         #sugerencias-productos .list-group-item {
             padding: 1rem;
@@ -585,11 +701,22 @@
     <!-- Header compacto -->
     <div class="row mb-2">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-                <h4 class="mb-0"><i class="bi bi-clipboard-check"></i> <span class="badge bg-primary me-2">Conteo {{ conteo.numero_conteo }}</span><span class="d-none d-md-inline">{{ conteo.nombre }}</span><span class="d-md-none">{{ conteo.nombre|truncatewords:4 }}</span></h4>
+            <div class="d-flex justify-content-between align-items-center mb-1 header-conteo-mobile">
+                <div class="flex-grow-1">
+                    <h4 class="mb-1 mb-md-0"><i class="bi bi-clipboard-check"></i> <span class="badge bg-primary me-2">Conteo {{ conteo.numero_conteo }}</span><span class="d-none d-md-inline">{{ conteo.nombre }}</span><span class="d-md-none">{{ conteo.nombre|truncatewords:4 }}</span></h4>
+                    <div class="d-md-none mt-1">
+                        {% if conteo.parejas.all %}
+                            {% for pareja in conteo.parejas.all %}
+                                <span class="badge bg-{{ pareja.color }} mb-1">{{ pareja.usuario_1.username }} & {{ pareja.usuario_2.username }}</span>
+                            {% endfor %}
+                        {% elif conteo.usuario_1 and conteo.usuario_2 %}
+                            <small class="text-muted">{{ conteo.usuario_1.username }} & {{ conteo.usuario_2.username }}</small>
+                        {% endif %}
+                    </div>
+                </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <a href="{% url 'movimientos:por_conteo' conteo.id %}" class="btn btn-sm btn-info">
-                        <i class="bi bi-activity"></i> Movimientos
+                        <i class="bi bi-activity"></i> <span class="d-none d-sm-inline">Movimientos</span>
                     </a>
                     <span class="badge {% if conteo.estado == 'en_proceso' %}bg-warning{% else %}bg-success{% endif %}">{{ conteo.estado|title }}</span>
                     <small class="text-muted d-none d-md-inline">
@@ -620,25 +747,25 @@
     <div class="row mb-2">
         <div class="col-12">
             <div class="card border-0 shadow-sm mb-2" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                <div class="card-body py-2">
+                <div class="card-body py-2 stats-card-mobile">
                     <div class="row text-center">
-                        <div class="col-6 border-end">
-                            <small class="text-muted d-block">Items Contados</small>
-                            <strong class="fs-5 text-primary">{{ total_items }}</strong>
-                            <small class="text-muted d-block">de {{ total_productos }}</small>
+                        <div class="col-6 col-md-6 border-end border-md-end">
+                            <small class="text-muted d-block mb-1">Items Contados</small>
+                            <strong class="fs-5 text-primary d-block">{{ total_items }}</strong>
+                            <small class="text-muted d-block mt-1">de {{ total_productos }}</small>
                         </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">Cantidad Total</small>
-                            <strong class="fs-5 text-success">{{ total_cantidad }}</strong>
+                        <div class="col-6 col-md-6">
+                            <small class="text-muted d-block mb-1">Cantidad Total</small>
+                            <strong class="fs-5 text-success d-block">{{ total_cantidad }}</strong>
                         </div>
                     </div>
                     <!-- Barra de progreso -->
-                    <div class="mt-2">
+                    <div class="mt-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <small class="text-muted">Progreso del Conteo</small>
+                            <small class="text-muted"><strong>Progreso del Conteo</strong></small>
                             <small class="text-muted"><strong>{{ porcentaje_contado|floatformat:1 }}%</strong></small>
                         </div>
-                        <div class="progress" style="height: 20px;">
+                        <div class="progress" style="height: 24px;">
                             <div class="progress-bar progress-bar-striped progress-bar-animated 
                                 {% if porcentaje_contado >= 100 %}bg-success
                                 {% elif porcentaje_contado >= 75 %}bg-info
@@ -666,17 +793,17 @@
                     <h6 class="mb-0"><i class="bi bi-camera"></i> Scanner y Búsqueda</h6>
                     <i class="bi bi-chevron-down" id="scanner-toggle-icon"></i>
                 </div>
-                <div class="card-body" id="scanner-section">
+                <div class="card-body scanner-section-mobile" id="scanner-section">
                     <!-- Búsqueda rápida siempre visible -->
                     <div class="mb-2 position-relative">
                         <div class="input-group input-group-sm">
-                            <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar por código, código de barras, nombre, marca, categoría, atributo..." autofocus>
+                            <input type="text" id="codigo-manual" class="form-control" placeholder="Buscar producto..." autofocus>
                             <input type="number" id="cantidad" class="form-control" placeholder="Cant." value="0" min="0" style="max-width: 80px;">
-                            <button id="agregar-manual" class="btn btn-primary">
-                                <i class="bi bi-plus-circle"></i>
+                            <button id="agregar-manual" class="btn btn-primary btn-action-mobile">
+                                <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Agregar</span>
                             </button>
                         </div>
-                        <div id="sugerencias-productos" class="list-group mt-1 border rounded shadow-sm" style="display: none; max-height: 40vh; overflow-y: auto; position: absolute; z-index: 1000; width: 100%; background: white; top: 100%; left: 0;">
+                        <div id="sugerencias-productos" class="list-group mt-1 border rounded shadow-sm" style="display: none; max-height: 50vh; overflow-y: auto; position: absolute; z-index: 1000; width: 100%; background: white; top: 100%; left: 0;">
                             <!-- Las sugerencias se cargarán aquí -->
                         </div>
                     </div>
@@ -688,17 +815,17 @@
                             <video id="video" autoplay playsinline></video>
                             <div class="scanner-overlay"></div>
                         </div>
-                        <div class="d-grid gap-1">
-                            <button id="start-camera" class="btn btn-success btn-sm">
+                        <div class="d-grid gap-2">
+                            <button id="start-camera" class="btn btn-success btn-action-mobile">
                                 <i class="bi bi-camera-video"></i> Activar Cámara
                             </button>
-                            <button id="stop-camera" class="btn btn-danger btn-sm" style="display: none;">
-                                <i class="bi bi-camera-video-off"></i> Desactivar
+                            <button id="stop-camera" class="btn btn-danger btn-action-mobile" style="display: none;">
+                                <i class="bi bi-camera-video-off"></i> Desactivar Cámara
                             </button>
                         </div>
                     </div>
-                    <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleScanner()" id="toggle-scanner-btn">
-                        <i class="bi bi-camera"></i> Mostrar/Ocultar Scanner
+                    <button class="btn btn-link btn-sm p-0 text-primary mt-2" onclick="toggleScanner()" id="toggle-scanner-btn">
+                        <i class="bi bi-camera"></i> <span id="scanner-toggle-text">Mostrar Scanner</span>
                     </button>
                 </div>
             </div>

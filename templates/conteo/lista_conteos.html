@@ -55,8 +55,86 @@
             flex: 1;
         }
         
+        /* Mostrar tabla en móvil también pero con scroll horizontal */
+        .table-responsive {
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
         .table-desktop {
+            display: table;
+            min-width: 900px;
+            font-size: 0.8rem;
+        }
+        
+        .table-desktop th,
+        .table-desktop td {
+            white-space: nowrap;
+            padding: 0.4rem 0.3rem;
+        }
+        
+        .table-desktop .btn-sm {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+        }
+        
+        /* Ocultar columnas menos importantes en móvil */
+        .table-desktop th:nth-child(7),
+        .table-desktop td:nth-child(7),
+        .table-desktop th:nth-child(8),
+        .table-desktop td:nth-child(8),
+        .table-desktop th:nth-child(9),
+        .table-desktop td:nth-child(9),
+        .table-desktop th:nth-child(10),
+        .table-desktop td:nth-child(10) {
             display: none;
+        }
+        
+        /* Primera columna sticky */
+        .table-desktop th:first-child,
+        .table-desktop td:first-child {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 10;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            padding-left: 0.75rem;
+            min-width: 120px;
+        }
+        
+        .table-desktop thead th:first-child {
+            background: #f8f9fa;
+            z-index: 11;
+        }
+        
+        /* Columna de acciones también sticky desde la derecha */
+        .table-desktop th:last-child,
+        .table-desktop td:last-child {
+            position: sticky;
+            right: 0;
+            background: white;
+            z-index: 10;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            padding-right: 0.75rem;
+        }
+        
+        .table-desktop thead th:last-child {
+            background: #f8f9fa;
+            z-index: 11;
+        }
+        
+        /* Indicador de scroll horizontal */
+        .table-responsive::after {
+            content: '← Desliza para ver más columnas →';
+            display: block;
+            text-align: center;
+            padding: 0.5rem;
+            color: #6c757d;
+            font-size: 0.75rem;
+            font-style: italic;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
         }
     }
     
@@ -70,6 +148,7 @@
             display: table;
         }
     }
+    
     
     /* Mejoras generales */
     .filtros-mobile {
@@ -200,7 +279,7 @@
                     {% endfor %}
                 </div>
                 
-                <!-- Vista desktop - Tabla -->
+                <!-- Vista desktop y móvil - Tabla con scroll horizontal -->
                 <div class="table-responsive">
                     <table class="table table-striped table-hover table-sm table-desktop mb-0">
                         <thead>
@@ -369,7 +448,7 @@
                 {% endfor %}
             </div>
             
-            <!-- Vista desktop - Tabla -->
+            <!-- Vista desktop y móvil - Tabla con scroll horizontal -->
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-sm table-desktop mb-0">
                     <thead>
@@ -537,7 +616,7 @@
                 {% endfor %}
             </div>
             
-            <!-- Vista desktop - Tabla -->
+            <!-- Vista desktop y móvil - Tabla con scroll horizontal -->
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-sm table-desktop mb-0">
                     <thead>
@@ -709,7 +788,8 @@
                 {% endfor %}
             </div>
             
-            <!-- Vista desktop - Tabla -->
+            <!-- Vista desktop y móvil - Tabla con scroll horizontal -->
+            <!-- Vista desktop y móvil - Tabla con scroll horizontal -->
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-desktop mb-0">
                     <thead>
