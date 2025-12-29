@@ -101,7 +101,7 @@
                                     <input type="checkbox" id="select-all" onchange="toggleTodos(this)">
                                 </th>
                                 <th style="width: 60px;">Imagen</th>
-                                <th>Código Barras</th>
+                                <th>Código</th>
                                 <th>Nombre</th>
                                 <th>Atributo</th>
                                 <th>Marca</th>
@@ -123,7 +123,7 @@
                                         </div>
                                     {% endif %}
                                 </td>
-                                <td class="small">{{ producto.codigo_barras }}</td>
+                                <td class="small">{{ producto.codigo|default:"-" }}</td>
                                 <td>
                                     <div class="text-truncate" style="max-width: 200px;" title="{{ producto.nombre }}">
                                         {{ producto.nombre }}
