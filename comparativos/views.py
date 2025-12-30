@@ -426,6 +426,21 @@ def detalle_comparativo(request, pk):
         num_parejas=0
     ).distinct().order_by('-fecha_creacion')
     
+    # Obtener productos que ya están en reconteos relacionados con este comparativo
+    productos_en_reconteo = set()
+    conteos_reconteo_relacionados = Conteo.objects.filter(
+        observaciones__contains=f'Conteo creado desde comparativo "{comparativo.nombre}"'
+    )
+    
+    for conteo_reconteo in conteos_reconteo_relacionados:
+        if conteo_reconteo.observaciones and 'Productos:' in conteo_reconteo.observaciones:
+            try:
+                productos_str = conteo_reconteo.observaciones.split('Productos:')[1].strip()
+                productos_ids = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+                productos_en_reconteo.update(productos_ids)
+            except (ValueError, AttributeError):
+                pass
+    
     return render(request, 'comparativos/detalle.html', {
         'comparativo': comparativo,
         'items': items,
@@ -446,6 +461,7 @@ def detalle_comparativo(request, pk):
         'conteos_info': conteos_info,
         'parejas_activas': parejas_activas,
         'conteos_recontar_existentes': conteos_recontar_existentes,
+        'productos_en_reconteo': productos_en_reconteo,
     })
 
 

@@ -445,7 +445,14 @@ body:has(#initial-loading-overlay:not([style*="display: none"])) {
                                 <input type="checkbox" class="checkbox-producto" value="{{ item.producto.id }}">
                             </td>
                             <td class="col-producto">
-                                <strong class="small">{{ item.producto.nombre }}</strong>
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong class="small">{{ item.producto.nombre }}</strong>
+                                    {% if item.producto.id in productos_en_reconteo %}
+                                        <span class="badge bg-success badge-sm" title="Este producto ya está en un reconteo">
+                                            <i class="bi bi-check-circle"></i> En Reconteo
+                                        </span>
+                                    {% endif %}
+                                </div>
                             </td>
                             <td>
                                 <small>{{ item.producto.atributo|default:"-" }}</small>
