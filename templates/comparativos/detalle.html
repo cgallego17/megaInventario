@@ -308,8 +308,8 @@ body:has(#initial-loading-overlay:not([style*="display: none"])) {
                 <h6 class="mb-0">Items Comparativos (Suma de todos los conteos finalizados)</h6>
                 <span class="badge bg-secondary" id="total-items-badge">{{ total_items }} items</span>
             </div>
-            <div class="row g-2">
-                <div class="col-md-6">
+            <div class="row g-2 mb-2">
+                <div class="col-md-5">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" 
@@ -318,7 +318,7 @@ body:has(#initial-loading-overlay:not([style*="display: none"])) {
                                placeholder="Buscar por código, nombre, atributo...">
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select id="filtro-diferencia" class="form-select form-select-sm">
                         <option value="">Todas las diferencias</option>
                         <option value="s1-con-diferencia">Con diferencia S1</option>
@@ -326,10 +326,61 @@ body:has(#initial-loading-overlay:not([style*="display: none"])) {
                         <option value="sin-diferencia">Sin diferencias</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="limpiar-filtros">
                         <i class="bi bi-x-circle"></i> Limpiar
                     </button>
+                </div>
+            </div>
+            <div class="row g-2" id="selector-recontar" style="display: none;">
+                <div class="col-md-12 mb-2">
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="accion-recontar" id="crear-nuevo" value="crear" checked>
+                        <label class="btn btn-outline-primary" for="crear-nuevo">
+                            <i class="bi bi-plus-circle"></i> Crear Nuevo Conteo
+                        </label>
+                        <input type="radio" class="btn-check" name="accion-recontar" id="agregar-existente" value="agregar">
+                        <label class="btn btn-outline-success" for="agregar-existente">
+                            <i class="bi bi-plus-square"></i> Agregar a Conteo Existente
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Opciones para crear nuevo conteo -->
+                <div id="opciones-crear-nuevo" class="row g-2">
+                    <div class="col-md-4">
+                        <input type="text" id="nombre-nuevo-conteo" class="form-control form-control-sm" placeholder="Nombre del conteo..." required>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="numero-conteo" class="form-select form-select-sm" required>
+                            <option value="">Número de conteo...</option>
+                            <option value="1">Conteo 1</option>
+                            <option value="2">Conteo 2</option>
+                            <option value="3">Conteo 3</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <button type="button" class="btn btn-sm btn-success w-100" id="btn-crear-conteo-recontar">
+                            <i class="bi bi-plus-circle"></i> Crear Conteo para Recontar (<span id="productos-seleccionados-count">0</span> productos)
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Opciones para agregar a conteo existente -->
+                <div id="opciones-agregar-existente" class="row g-2" style="display: none;">
+                    <div class="col-md-8">
+                        <select id="selector-conteo-existente" class="form-select form-select-sm" required>
+                            <option value="">Seleccionar conteo existente...</option>
+                            {% for conteo in conteos_recontar_existentes %}
+                                <option value="{{ conteo.id }}">{{ conteo.nombre }} ({{ conteo.get_numero_conteo_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-sm btn-success w-100" id="btn-agregar-productos-conteo">
+                            <i class="bi bi-plus-square"></i> Agregar Productos (<span id="productos-seleccionados-count-agregar">0</span>)
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -338,6 +389,9 @@ body:has(#initial-loading-overlay:not([style*="display: none"])) {
                 <table class="table table-striped table-hover table-sm comparativo-table mb-0" id="tabla-comparativo">
                     <thead class="table-light">
                         <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="select-all-productos" title="Seleccionar todos">
+                            </th>
                             <th class="col-producto sortable" data-sort="producto">Producto</th>
                             <th class="sortable" data-sort="atributo">Atrib.</th>
                             <th class="col-codigo sortable" data-sort="codigo">Código</th>
@@ -371,7 +425,7 @@ body:has(#initial-loading-overlay:not([style*="display: none"])) {
                     </thead>
                     <tbody>
                         {% for item in items %}
-                        <tr data-producto="{{ item.producto.nombre|lower }}" 
+                        <tr data-producto-id="{{ item.producto.id }}" data-producto="{{ item.producto.nombre|lower }}" 
                             data-atributo="{{ item.producto.atributo|default:''|lower }}"
                             data-codigo="{{ item.producto.codigo|default:''|lower }}"
                             data-codigo-barras="{{ item.producto.codigo_barras|lower }}"
@@ -387,6 +441,9 @@ body:has(#initial-loading-overlay:not([style*="display: none"])) {
                             data-dif-valor-s1="{{ item.get_diferencia_valor_sistema1 }}"
                             data-dif-cant-s2="{{ item.diferencia_sistema2 }}"
                             data-dif-valor-s2="{{ item.get_diferencia_valor_sistema2 }}">
+                            <td style="width: 40px;">
+                                <input type="checkbox" class="checkbox-producto" value="{{ item.producto.id }}">
+                            </td>
                             <td class="col-producto">
                                 <strong class="small">{{ item.producto.nombre }}</strong>
                             </td>
@@ -740,6 +797,227 @@ document.addEventListener('DOMContentLoaded', function() {
             el.textContent = sign + '$' + formatted;
         }
     });
+    
+    // Funcionalidad para asignar productos a recontar
+    const selectAllCheckbox = document.getElementById('select-all-productos');
+    const checkboxesProductos = document.querySelectorAll('.checkbox-producto');
+    const selectorRecontar = document.getElementById('selector-recontar');
+    const productosSeleccionadosCount = document.getElementById('productos-seleccionados-count');
+    const productosSeleccionadosCountAgregar = document.getElementById('productos-seleccionados-count-agregar');
+    const opcionesCrearNuevo = document.getElementById('opciones-crear-nuevo');
+    const opcionesAgregarExistente = document.getElementById('opciones-agregar-existente');
+    const radioCrearNuevo = document.getElementById('crear-nuevo');
+    const radioAgregarExistente = document.getElementById('agregar-existente');
+    const btnAgregarProductosConteo = document.getElementById('btn-agregar-productos-conteo');
+    
+    function actualizarContador() {
+        const seleccionados = document.querySelectorAll('.checkbox-producto:checked');
+        const count = seleccionados.length;
+        if (productosSeleccionadosCount) {
+            productosSeleccionadosCount.textContent = count;
+        }
+        if (productosSeleccionadosCountAgregar) {
+            productosSeleccionadosCountAgregar.textContent = count;
+        }
+        
+        if (count > 0) {
+            selectorRecontar.style.display = 'block';
+        } else {
+            selectorRecontar.style.display = 'none';
+        }
+    }
+    
+    // Cambiar entre crear nuevo y agregar a existente
+    if (radioCrearNuevo && radioAgregarExistente) {
+        radioCrearNuevo.addEventListener('change', function() {
+            if (this.checked) {
+                opcionesCrearNuevo.style.display = 'flex';
+                opcionesAgregarExistente.style.display = 'none';
+            }
+        });
+        
+        radioAgregarExistente.addEventListener('change', function() {
+            if (this.checked) {
+                opcionesCrearNuevo.style.display = 'none';
+                opcionesAgregarExistente.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Selector "Seleccionar todos"
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            checkboxesProductos.forEach(function(checkbox) {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            actualizarContador();
+        });
+    }
+    
+    // Actualizar contador cuando se selecciona/deselecciona un producto
+    checkboxesProductos.forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            // Si se deselecciona uno, desmarcar "seleccionar todos"
+            if (!checkbox.checked && selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+            // Si todos están seleccionados, marcar "seleccionar todos"
+            else if (checkbox.checked && selectAllCheckbox) {
+                const todosSeleccionados = Array.from(checkboxesProductos).every(cb => cb.checked);
+                selectAllCheckbox.checked = todosSeleccionados;
+            }
+            actualizarContador();
+        });
+    });
+    
+    // Botón para crear conteo y asignar productos
+    const btnCrearConteoRecontar = document.getElementById('btn-crear-conteo-recontar');
+    if (btnCrearConteoRecontar) {
+        btnCrearConteoRecontar.addEventListener('click', function() {
+            const productosSeleccionados = Array.from(document.querySelectorAll('.checkbox-producto:checked')).map(cb => cb.value);
+            const nombreConteo = document.getElementById('nombre-nuevo-conteo').value.trim();
+            const numeroConteo = document.getElementById('numero-conteo').value;
+            
+            if (productosSeleccionados.length === 0) {
+                alert('Debe seleccionar al menos un producto.');
+                return;
+            }
+            
+            if (!nombreConteo) {
+                alert('Debe ingresar un nombre para el conteo.');
+                document.getElementById('nombre-nuevo-conteo').focus();
+                return;
+            }
+            
+            if (!numeroConteo) {
+                alert('Debe seleccionar un número de conteo.');
+                document.getElementById('numero-conteo').focus();
+                return;
+            }
+            
+            if (!confirm(`¿Está seguro de crear un nuevo conteo "${nombreConteo}" (Conteo ${numeroConteo}) con ${productosSeleccionados.length} producto(s) para recontar?\n\nLos productos se asignarán a las parejas en la página de asignación múltiple.`)) {
+                return;
+            }
+            
+            // Deshabilitar botón mientras se procesa
+            btnCrearConteoRecontar.disabled = true;
+            btnCrearConteoRecontar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando...';
+            
+            // Enviar petición AJAX
+            const formData = new FormData();
+            productosSeleccionados.forEach(function(id) {
+                formData.append('productos[]', id);
+            });
+            formData.append('nombre_conteo', nombreConteo);
+            formData.append('numero_conteo', numeroConteo);
+            
+            fetch('{% url "comparativos:asignar_recontar" comparativo.pk %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    // Desmarcar todos los checkboxes
+                    checkboxesProductos.forEach(function(checkbox) {
+                        checkbox.checked = false;
+                    });
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                    }
+                    actualizarContador();
+                    // Limpiar campos
+                    document.getElementById('nombre-nuevo-conteo').value = '';
+                    document.getElementById('numero-conteo').value = '';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al crear el conteo. Por favor, intente nuevamente.');
+            })
+            .finally(() => {
+                btnCrearConteoRecontar.disabled = false;
+                const count = document.querySelectorAll('.checkbox-producto:checked').length;
+                btnCrearConteoRecontar.innerHTML = '<i class="bi bi-plus-circle"></i> Crear Conteo para Recontar (<span id="productos-seleccionados-count">' + count + '</span> productos)';
+            });
+        });
+    }
+    
+    // Botón para agregar productos a conteo existente
+    if (btnAgregarProductosConteo) {
+        btnAgregarProductosConteo.addEventListener('click', function() {
+            const productosSeleccionados = Array.from(document.querySelectorAll('.checkbox-producto:checked')).map(cb => cb.value);
+            const conteoId = document.getElementById('selector-conteo-existente').value;
+            
+            if (productosSeleccionados.length === 0) {
+                alert('Debe seleccionar al menos un producto.');
+                return;
+            }
+            
+            if (!conteoId) {
+                alert('Debe seleccionar un conteo existente.');
+                document.getElementById('selector-conteo-existente').focus();
+                return;
+            }
+            
+            if (!confirm(`¿Está seguro de agregar ${productosSeleccionados.length} producto(s) al conteo seleccionado?`)) {
+                return;
+            }
+            
+            // Deshabilitar botón mientras se procesa
+            btnAgregarProductosConteo.disabled = true;
+            btnAgregarProductosConteo.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Agregando...';
+            
+            // Enviar petición AJAX
+            const formData = new FormData();
+            productosSeleccionados.forEach(function(id) {
+                formData.append('productos[]', id);
+            });
+            formData.append('conteo_id', conteoId);
+            formData.append('accion', 'agregar');
+            
+            fetch('{% url "comparativos:asignar_recontar" comparativo.pk %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    // Desmarcar todos los checkboxes
+                    checkboxesProductos.forEach(function(checkbox) {
+                        checkbox.checked = false;
+                    });
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                    }
+                    actualizarContador();
+                    // Limpiar selector
+                    document.getElementById('selector-conteo-existente').value = '';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al agregar productos. Por favor, intente nuevamente.');
+            })
+            .finally(() => {
+                btnAgregarProductosConteo.disabled = false;
+                const count = document.querySelectorAll('.checkbox-producto:checked').length;
+                btnAgregarProductosConteo.innerHTML = '<i class="bi bi-plus-square"></i> Agregar Productos (<span id="productos-seleccionados-count-agregar">' + count + '</span>)';
+            });
+        });
+    }
 });
 </script>
 

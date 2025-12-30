@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db import transaction, models
 from django.utils import timezone
 from django import forms
@@ -248,27 +248,70 @@ def subir_inventario(request, pk):
 
 @login_required
 def procesar_comparativo(request, pk):
-    """Procesa el comparativo cargando datos del conteo físico - Suma TODOS los conteos finalizados"""
+    """Procesa el comparativo cargando datos del conteo físico - Prioriza reconteos relacionados con este comparativo"""
     comparativo = get_object_or_404(ComparativoInventario, pk=pk)
     
-    # Obtener TODOS los conteos finalizados para sumar sus cantidades
+    from django.db.models import Sum
+    
+    # Buscar conteos de reconteo relacionados con este comparativo
+    conteos_reconteo = Conteo.objects.filter(
+        estado='finalizado',
+        observaciones__contains=f'Conteo creado desde comparativo "{comparativo.nombre}"'
+    )
+    
+    # Obtener TODOS los conteos finalizados para productos que no están en reconteos
     conteos_finalizados = Conteo.objects.filter(estado='finalizado')
     
     if not conteos_finalizados.exists():
         messages.warning(request, 'No hay conteos finalizados. El comparativo se procesará con cantidad física 0.')
     
-    # Agrupar items por producto y sumar cantidades de todos los conteos finalizados
-    from django.db.models import Sum
+    # Obtener productos de reconteos (si existen)
+    productos_reconteo_ids = set()
+    if conteos_reconteo.exists():
+        for conteo_reconteo in conteos_reconteo:
+            if conteo_reconteo.observaciones and 'Productos:' in conteo_reconteo.observaciones:
+                try:
+                    productos_str = conteo_reconteo.observaciones.split('Productos:')[1].strip()
+                    productos_ids = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+                    productos_reconteo_ids.update(productos_ids)
+                except (ValueError, AttributeError):
+                    pass
     
-    # Obtener todos los productos que tienen items en conteos finalizados
-    items_agregados = ItemConteo.objects.filter(
-        conteo__in=conteos_finalizados
-    ).values('producto').annotate(
-        cantidad_total=Sum('cantidad')
-    )
+    # Agrupar items por producto: reconteos tienen prioridad
+    cantidad_por_producto = {}
     
-    # Crear un diccionario producto -> cantidad total
-    cantidad_por_producto = {item['producto']: item['cantidad_total'] for item in items_agregados}
+    if productos_reconteo_ids:
+        # Items de reconteos (solo conteos de reconteo relacionados)
+        items_reconteo = ItemConteo.objects.filter(
+            conteo__in=conteos_reconteo,
+            producto_id__in=productos_reconteo_ids
+        ).values('producto').annotate(
+            cantidad_total=Sum('cantidad')
+        )
+        for item in items_reconteo:
+            cantidad_por_producto[item['producto']] = item['cantidad_total']
+        
+        # Items de productos normales (excluyendo productos de reconteo)
+        items_normales = ItemConteo.objects.filter(
+            conteo__in=conteos_finalizados
+        ).exclude(
+            producto_id__in=productos_reconteo_ids
+        ).values('producto').annotate(
+            cantidad_total=Sum('cantidad')
+        )
+    else:
+        # Si no hay reconteos, usar todos los conteos finalizados
+        items_normales = ItemConteo.objects.filter(
+            conteo__in=conteos_finalizados
+        ).values('producto').annotate(
+            cantidad_total=Sum('cantidad')
+        )
+    
+    # Agregar cantidades de productos normales
+    for item in items_normales:
+        producto_id = item['producto']
+        if producto_id not in cantidad_por_producto:
+            cantidad_por_producto[producto_id] = item['cantidad_total']
     
     # Obtener todos los productos (activos e inactivos) para asegurar que todos estén en el comparativo
     productos = Producto.objects.all()
@@ -283,8 +326,14 @@ def procesar_comparativo(request, pk):
             item.cantidad_fisico = cantidad_por_producto.get(producto.id, 0)
             item.calcular_diferencias()
     
+    # Mensaje informativo
     conteos_usados = conteos_finalizados.count()
-    messages.success(request, f'Comparativo procesado exitosamente. Se sumaron {conteos_usados} conteo(s) finalizado(s).')
+    if conteos_reconteo.exists():
+        mensaje = f'Comparativo procesado exitosamente. Se usaron {conteos_reconteo.count()} reconteo(s) para productos específicos y {conteos_usados} conteo(s) finalizado(s) en total.'
+    else:
+        mensaje = f'Comparativo procesado exitosamente. Se sumaron {conteos_usados} conteo(s) finalizado(s).'
+    
+    messages.success(request, mensaje)
     return redirect('comparativos:detalle', pk=comparativo.pk)
 
 
@@ -362,6 +411,21 @@ def detalle_comparativo(request, pk):
     diferencia_cantidad_s1 = total_cantidad_fisico - total_cantidad_sistema1
     diferencia_cantidad_s2 = total_cantidad_fisico - total_cantidad_sistema2
     
+    # Obtener parejas activas para el selector
+    from usuarios.models import ParejaConteo
+    parejas_activas = ParejaConteo.objects.filter(activa=True).order_by('usuario_1__username', 'usuario_2__username')
+    
+    # Obtener conteos de reconteo existentes (creados desde comparativos, sin parejas asignadas)
+    from django.db.models import Count
+    conteos_recontar_existentes = Conteo.objects.filter(
+        estado='en_proceso',
+        observaciones__contains='Conteo creado desde comparativo'
+    ).annotate(
+        num_parejas=Count('parejas')
+    ).filter(
+        num_parejas=0
+    ).distinct().order_by('-fecha_creacion')
+    
     return render(request, 'comparativos/detalle.html', {
         'comparativo': comparativo,
         'items': items,
@@ -380,6 +444,8 @@ def detalle_comparativo(request, pk):
         'diferencia_valor_s2': diferencia_valor_s2,
         'conteos_finalizados': conteos_finalizados,
         'conteos_info': conteos_info,
+        'parejas_activas': parejas_activas,
+        'conteos_recontar_existentes': conteos_recontar_existentes,
     })
 
 
@@ -774,4 +840,112 @@ def descargar_ejemplo(request):
     response['Content-Disposition'] = f'attachment; filename="plantilla_inventario_{timezone.now().strftime("%Y%m%d")}.xlsx"'
     
     return response
+
+
+@login_required
+def asignar_productos_recontar(request, pk):
+    """Crea un nuevo conteo o agrega productos a un conteo existente para recontar"""
+    comparativo = get_object_or_404(ComparativoInventario, pk=pk)
+    
+    if request.method == 'POST':
+        producto_ids = request.POST.getlist('productos[]')
+        accion = request.POST.get('accion', 'crear')  # 'crear' o 'agregar'
+        conteo_id = request.POST.get('conteo_id')
+        
+        if not producto_ids:
+            return JsonResponse({'success': False, 'error': 'Debe seleccionar al menos un producto.'})
+        
+        try:
+            productos = Producto.objects.filter(id__in=producto_ids)
+            
+            if accion == 'agregar':
+                # Agregar productos a un conteo existente
+                if not conteo_id:
+                    return JsonResponse({'success': False, 'error': 'Debe seleccionar un conteo existente.'})
+                
+                try:
+                    conteo = Conteo.objects.get(pk=conteo_id, estado='en_proceso')
+                    
+                    # Verificar que el conteo fue creado desde un comparativo
+                    if 'Conteo creado desde comparativo' not in (conteo.observaciones or ''):
+                        return JsonResponse({'success': False, 'error': 'El conteo seleccionado no es válido para agregar productos.'})
+                    
+                    # Obtener productos actuales del conteo
+                    productos_actuales = []
+                    if conteo.observaciones and 'Productos:' in conteo.observaciones:
+                        productos_str = conteo.observaciones.split('Productos:')[1].strip()
+                        productos_actuales = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+                    
+                    # Agregar nuevos productos (sin duplicados)
+                    productos_nuevos_ids = [int(pid) for pid in producto_ids]
+                    productos_todos_ids = list(set(productos_actuales + productos_nuevos_ids))
+                    
+                    # Actualizar observaciones con todos los productos
+                    productos_ids_str = ','.join(str(pid) for pid in productos_todos_ids)
+                    conteo.observaciones = f'Conteo creado desde comparativo "{comparativo.nombre}" para recontar productos con diferencias. Productos: {productos_ids_str}'
+                    conteo.usuario_modificador = request.user
+                    conteo.save()
+                    
+                    productos_agregados = len([p for p in productos_nuevos_ids if p not in productos_actuales])
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'{productos_agregados} producto(s) agregado(s) al conteo "{conteo.nombre}". Total de productos en el conteo: {len(productos_todos_ids)}.',
+                        'conteo_id': conteo.pk
+                    })
+                except Conteo.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Conteo no encontrado o no está en proceso.'})
+            
+            else:
+                # Crear nuevo conteo
+                nombre_conteo = request.POST.get('nombre_conteo', '').strip()
+                numero_conteo = request.POST.get('numero_conteo')
+                
+                if not nombre_conteo:
+                    return JsonResponse({'success': False, 'error': 'Debe ingresar un nombre para el conteo.'})
+                
+                if not numero_conteo:
+                    return JsonResponse({'success': False, 'error': 'Debe seleccionar un número de conteo.'})
+                
+                try:
+                    numero_conteo = int(numero_conteo)
+                    if numero_conteo not in [1, 2, 3]:
+                        return JsonResponse({'success': False, 'error': 'El número de conteo debe ser 1, 2 o 3.'})
+                except (ValueError, TypeError):
+                    return JsonResponse({'success': False, 'error': 'Número de conteo inválido.'})
+                
+                with transaction.atomic():
+                    # Verificar si ya existe un conteo con el mismo nombre y número
+                    nombre_final = nombre_conteo
+                    contador = 1
+                    while Conteo.objects.filter(nombre=nombre_final, numero_conteo=numero_conteo).exists():
+                        nombre_final = f"{nombre_conteo} ({contador})"
+                        contador += 1
+                    
+                    # Crear el nuevo conteo sin pareja asignada
+                    # Guardar los IDs de productos en las observaciones para poder filtrarlos después
+                    productos_ids_str = ','.join(str(pid) for pid in producto_ids)
+                    conteo = Conteo.objects.create(
+                        nombre=nombre_final,
+                        numero_conteo=numero_conteo,
+                        estado='en_proceso',
+                        usuario_creador=request.user,
+                        usuario_modificador=request.user,
+                        observaciones=f'Conteo creado desde comparativo "{comparativo.nombre}" para recontar productos con diferencias. Productos: {productos_ids_str}'
+                    )
+                
+                mensaje = f'Conteo "{nombre_final}" creado exitosamente con {len(producto_ids)} producto(s).'
+                if nombre_final != nombre_conteo:
+                    mensaje += f' (El nombre se ajustó a "{nombre_final}" porque ya existía un conteo con el nombre "{nombre_conteo}")'
+                mensaje += ' Ahora puede asignar estos productos a parejas en la página de asignación múltiple.'
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': mensaje,
+                    'conteo_id': conteo.pk
+                })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Error: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido.'})
 

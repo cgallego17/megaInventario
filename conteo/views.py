@@ -109,15 +109,33 @@ def detalle_conteo(request, pk):
         items_todos = None
         items_otros = []
     
+    # Verificar si el conteo fue creado desde un comparativo
+    # Si tiene "Productos:" en las observaciones, usar solo esos productos
+    productos_del_conteo = None
+    productos_ids_conteo = None
+    if conteo.observaciones and 'Productos:' in conteo.observaciones:
+        try:
+            productos_str = conteo.observaciones.split('Productos:')[1].strip()
+            productos_ids_conteo = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+            if productos_ids_conteo:
+                productos_del_conteo = Producto.objects.filter(id__in=productos_ids_conteo)
+        except (ValueError, AttributeError):
+            productos_ids_conteo = None
+    
     # Obtener productos asignados a las parejas del usuario
     productos_asignados = Producto.objects.filter(
         parejas_asignadas__in=parejas_usuario
     ).distinct()
     
-    # Si no hay productos asignados, usar todos los productos para estadísticas
-    tiene_productos_asignados = productos_asignados.exists()
-    if not tiene_productos_asignados:
-        productos_asignados = Producto.objects.all()
+    # Si el conteo tiene productos específicos (creado desde comparativo), usar esos
+    if productos_del_conteo is not None:
+        productos_asignados = productos_del_conteo
+        tiene_productos_asignados = True
+    else:
+        # Si no hay productos asignados, usar todos los productos para estadísticas
+        tiene_productos_asignados = productos_asignados.exists()
+        if not tiene_productos_asignados:
+            productos_asignados = Producto.objects.all()
     
     # Estadísticas (solo de los items contados por la pareja)
     if es_admin:
@@ -131,21 +149,37 @@ def detalle_conteo(request, pk):
         total_items_todos = total_items
         total_cantidad_todos = total_cantidad
     
-    # Total de productos asignados al usuario (o todos si no hay asignados)
+    # Total de productos asignados al usuario (o del conteo si fue creado desde comparativo)
     total_productos_asignados = productos_asignados.count()
     
-    # Calcular porcentaje de productos contados (de los asignados o todos)
-    porcentaje_contado = (total_items / total_productos_asignados * 100) if total_productos_asignados > 0 else 0
+    # Calcular porcentaje de productos contados
+    # Si el conteo tiene productos específicos, solo contar items de esos productos
+    if productos_del_conteo is not None:
+        # Contar solo items que corresponden a productos del conteo
+        items_del_conteo = items.filter(producto_id__in=productos_ids_conteo)
+        total_items_para_progreso = items_del_conteo.count()
+        porcentaje_contado = (total_items_para_progreso / total_productos_asignados * 100) if total_productos_asignados > 0 else 0
+    else:
+        # Lógica normal: porcentaje basado en items contados vs productos asignados
+        porcentaje_contado = (total_items / total_productos_asignados * 100) if total_productos_asignados > 0 else 0
     
     # Obtener IDs de productos ya contados en ESTE conteo (por CUALQUIER usuario)
     # Esto asegura que si un producto fue contado por cualquier usuario, no aparezca en pendientes
     productos_contados_ids_todos = set(conteo.items.values_list('producto_id', flat=True))
+    
+    # Si el conteo tiene productos específicos, filtrar solo los items de esos productos
+    if productos_del_conteo is not None:
+        productos_contados_ids_todos = productos_contados_ids_todos.intersection(set(productos_ids_conteo))
     
     # Obtener IDs de productos contados por la pareja (para mostrar en "contados")
     if es_admin:
         productos_contados_ids_pareja = set(items_pareja_qs.values_list('producto_id', flat=True))
     else:
         productos_contados_ids_pareja = set(items.values_list('producto_id', flat=True))
+    
+    # Si el conteo tiene productos específicos, filtrar solo los items de esos productos
+    if productos_del_conteo is not None:
+        productos_contados_ids_pareja = productos_contados_ids_pareja.intersection(set(productos_ids_conteo))
     
     # Separar productos en contados y no contados
     # Contados: solo los contados por la pareja (para mostrar en la tab de contados)

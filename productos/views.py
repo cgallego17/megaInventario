@@ -13,6 +13,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .models import Producto
 from .forms import ProductoForm, ImportarProductosForm, ImportarProductosAPIForm
 from usuarios.models import ParejaConteo
+from conteo.models import Conteo
 
 
 @login_required
@@ -424,8 +425,26 @@ def asignar_multiples_parejas(request):
                 else:
                     messages.success(request, f'{productos_procesados} producto(s) desasignado(s) de {parejas.count()} pareja(s).')
     
+    # Filtro por conteo (para mostrar productos de conteos creados desde comparativos)
+    conteo_filtro = request.GET.get('conteo', '').strip()
+    productos_ids_conteo = []
+    
+    if conteo_filtro:
+        try:
+            conteo = Conteo.objects.get(pk=conteo_filtro, estado='en_proceso')
+            # Extraer IDs de productos de las observaciones
+            if conteo.observaciones and 'Productos:' in conteo.observaciones:
+                productos_str = conteo.observaciones.split('Productos:')[1].strip()
+                productos_ids_conteo = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+        except (Conteo.DoesNotExist, ValueError, AttributeError):
+            pass
+    
     # Obtener productos con paginación y filtros
-    productos = Producto.objects.all()
+    if productos_ids_conteo:
+        # Si hay filtro de conteo, mostrar solo esos productos
+        productos = Producto.objects.filter(id__in=productos_ids_conteo)
+    else:
+        productos = Producto.objects.all()
     
     # Filtros de búsqueda
     busqueda = request.GET.get('busqueda', '').strip()
@@ -477,6 +496,18 @@ def asignar_multiples_parejas(request):
     else:
         productos = productos.order_by('marca', 'nombre')
     
+    # Obtener conteos en proceso creados desde comparativos (sin parejas asignadas)
+    # Usar annotate para contar parejas y filtrar los que no tienen
+    from django.db.models import Count
+    conteos_recontar = Conteo.objects.filter(
+        estado='en_proceso',
+        observaciones__contains='Conteo creado desde comparativo'
+    ).annotate(
+        num_parejas=Count('parejas')
+    ).filter(
+        num_parejas=0
+    ).distinct().order_by('-fecha_creacion')
+    
     # Obtener valores únicos para los filtros
     marcas = Producto.objects.exclude(marca__isnull=True).exclude(marca='').values_list('marca', flat=True).distinct().order_by('marca')
     categorias = Producto.objects.exclude(categoria__isnull=True).exclude(categoria='').values_list('categoria', flat=True).distinct().order_by('categoria')
@@ -506,6 +537,8 @@ def asignar_multiples_parejas(request):
         'marca_filtro': marca_filtro,
         'categoria_filtro': categoria_filtro,
         'atributo_filtro': atributo_filtro,
+        'conteo_filtro': conteo_filtro,
+        'conteos_recontar': conteos_recontar,
         'orden': orden,
         'marcas': marcas,
         'marcas_con_asignaciones': marcas_con_asignaciones,

@@ -20,7 +20,21 @@
         <div class="card-body p-3">
             <form method="get" class="mb-2">
                 <div class="row g-2 mb-2">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-0"><i class="bi bi-clipboard-check"></i> Conteo para Recontar</label>
+                        <select name="conteo" class="form-select form-select-sm" id="filtro-conteo">
+                            <option value="">Todos los productos</option>
+                            {% for conteo in conteos_recontar %}
+                                <option value="{{ conteo.id }}" {% if conteo_filtro == conteo.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ conteo.nombre }} ({{ conteo.get_numero_conteo_display }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted d-block mt-1">
+                            <i class="bi bi-info-circle"></i> Seleccione un conteo para ver solo sus productos
+                        </small>
+                    </div>
+                    <div class="col-md-4">
                         <input type="text" name="busqueda" class="form-control form-control-sm" placeholder="Buscar por ID, código, nombre, marca, atributo..." value="{{ busqueda }}" autofocus>
                     </div>
                     <div class="col-md-2">
@@ -33,9 +47,6 @@
                                 </option>
                             {% endfor %}
                         </select>
-                        <small class="text-muted d-block mt-1">
-                            <i class="bi bi-info-circle"></i> Las marcas con ✓ tienen productos asignados
-                        </small>
                     </div>
                     <div class="col-md-2">
                         <select name="categoria" class="form-select form-select-sm">
@@ -45,7 +56,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <button type="submit" class="btn btn-primary btn-sm w-100">
                             <i class="bi bi-search"></i> Buscar
                         </button>

@@ -29,19 +29,47 @@ def dashboard(request):
     progreso_conteos = []
     
     for conteo in conteos_activos:
-        # Todos los items en el conteo cuentan como contados (incluso con cantidad 0)
-        items_contados = conteo.items.count()
-        # El porcentaje se calcula basado en cuántos productos del sistema total han sido agregados al conteo
-        porcentaje = (items_contados / total_productos_sistema * 100) if total_productos_sistema > 0 else 0
+        # Verificar si el conteo fue creado desde un comparativo
+        productos_del_conteo = None
+        productos_ids_conteo = None
+        if conteo.observaciones and 'Productos:' in conteo.observaciones:
+            try:
+                productos_str = conteo.observaciones.split('Productos:')[1].strip()
+                productos_ids_conteo = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+                if productos_ids_conteo:
+                    productos_del_conteo = Producto.objects.filter(id__in=productos_ids_conteo)
+            except (ValueError, AttributeError):
+                pass
+        
+        # Determinar el total de productos para el progreso
+        if productos_del_conteo is not None:
+            # Si el conteo tiene productos específicos, usar solo esos
+            total_productos_conteo = len(productos_ids_conteo)
+            # Contar solo items que corresponden a productos del conteo
+            items_contados = conteo.items.filter(producto_id__in=productos_ids_conteo).count()
+        else:
+            # Lógica normal: todos los productos del sistema
+            total_productos_conteo = total_productos_sistema
+            items_contados = conteo.items.count()
+        
+        # Calcular porcentaje
+        porcentaje = (items_contados / total_productos_conteo * 100) if total_productos_conteo > 0 else 0
+        
+        # Calcular total de cantidad (todos los items del conteo)
         total_cantidad = conteo.items.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
-        items_con_cantidad = conteo.items.filter(cantidad__gt=0).count()
+        
+        # Items con cantidad > 0
+        if productos_del_conteo is not None:
+            items_con_cantidad = conteo.items.filter(producto_id__in=productos_ids_conteo, cantidad__gt=0).count()
+        else:
+            items_con_cantidad = conteo.items.filter(cantidad__gt=0).count()
         
         items_con_cero = items_contados - items_con_cantidad
         
         progreso_conteos.append({
             'conteo': conteo,
             'items_contados': items_contados,
-            'total_productos_sistema': total_productos_sistema,
+            'total_productos_sistema': total_productos_conteo,  # Usar total del conteo o del sistema
             'items_con_cantidad': items_con_cantidad,  # Para mostrar cuántos tienen cantidad > 0
             'items_con_cero': items_con_cero,  # Items con cantidad 0
             'porcentaje': round(porcentaje, 1),
