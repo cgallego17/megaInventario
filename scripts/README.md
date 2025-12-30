@@ -37,3 +37,6 @@ python scripts/nombre_del_script.py
 Algunos scripts requieren argumentos adicionales. Consulta la documentación dentro de cada script para más detalles.
 
 
+
+
+

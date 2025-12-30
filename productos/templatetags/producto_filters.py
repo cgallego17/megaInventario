@@ -29,3 +29,6 @@ def formato_precio(value):
         return "0,00"
 
 
+
+
+

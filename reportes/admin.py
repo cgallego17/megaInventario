@@ -10,3 +10,6 @@ class ReporteAdmin(admin.ModelAdmin):
     readonly_fields = ['fecha_creacion']
 
 
+
+
+

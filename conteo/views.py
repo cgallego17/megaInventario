@@ -393,11 +393,12 @@ def buscar_producto(request):
             Q(atributo__icontains=busqueda)
         )
     
-    productos = productos[:10]  # Limitar a 10 resultados
+    # Obtener el total antes de evaluar el queryset
+    total_productos = productos.count()
     
-    if productos.count() == 0:
+    if total_productos == 0:
         return JsonResponse({'success': False, 'error': 'No se encontraron productos'})
-    elif productos.count() == 1:
+    elif total_productos == 1:
             # Si hay un solo resultado, retornarlo directamente
             producto = productos.first()
             return JsonResponse({
@@ -430,7 +431,7 @@ def buscar_producto(request):
             'success': True,
             'productos': resultados,
             'unico': False,
-            'total': productos.count()
+            'total': total_productos
         })
 
 
