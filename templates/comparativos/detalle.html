@@ -929,17 +929,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-                    // Desmarcar todos los checkboxes
-                    checkboxesProductos.forEach(function(checkbox) {
-                        checkbox.checked = false;
-                    });
-                    if (selectAllCheckbox) {
-                        selectAllCheckbox.checked = false;
-                    }
-                    actualizarContador();
-                    // Limpiar campos
-                    document.getElementById('nombre-nuevo-conteo').value = '';
-                    document.getElementById('numero-conteo').value = '';
+                    // Recargar la página para mostrar los badges "En Reconteo"
+                    window.location.reload();
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1000,16 +991,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-                    // Desmarcar todos los checkboxes
-                    checkboxesProductos.forEach(function(checkbox) {
-                        checkbox.checked = false;
-                    });
-                    if (selectAllCheckbox) {
-                        selectAllCheckbox.checked = false;
-                    }
-                    actualizarContador();
-                    // Limpiar selector
-                    document.getElementById('selector-conteo-existente').value = '';
+                    // Recargar la página para mostrar los badges "En Reconteo"
+                    window.location.reload();
                 } else {
                     alert('Error: ' + data.error);
                 }
