@@ -208,22 +208,27 @@ def detalle_conteo(request, pk):
         except (ValueError, AttributeError):
             productos_ids_conteo = None
     
-    # Obtener productos asignados a las parejas del conteo (no del usuario)
-    parejas_conteo = conteo.parejas.all()
-    
-    # Si el conteo tiene productos específicos (creado desde comparativo), usar esos
+    # Obtener productos asignados a las parejas del usuario
+    # Si el conteo tiene productos específicos (creado desde comparativo), filtrar solo los asignados a la pareja del usuario
     if productos_del_conteo is not None:
-        productos_asignados = productos_del_conteo
-        tiene_productos_asignados = True
+        # Si es un reconteo, usar solo los productos del reconteo que están asignados a la pareja del usuario
+        if parejas_usuario.exists():
+            productos_asignados = productos_del_conteo.filter(
+                parejas_asignadas__in=parejas_usuario
+            ).distinct()
+        else:
+            # Si el usuario no tiene parejas, no hay productos asignados
+            productos_asignados = Producto.objects.none()
+        tiene_productos_asignados = productos_asignados.exists()
     else:
-        # Obtener productos asignados a las parejas del conteo
-        if parejas_conteo.exists():
+        # Obtener productos asignados a las parejas del usuario (no todas las parejas del conteo)
+        if parejas_usuario.exists():
             productos_asignados = Producto.objects.filter(
-                parejas_asignadas__in=parejas_conteo
+                parejas_asignadas__in=parejas_usuario
             ).distinct()
             tiene_productos_asignados = productos_asignados.exists()
         else:
-            # Si no hay parejas asignadas al conteo, no hay productos asignados
+            # Si no hay parejas del usuario, no hay productos asignados
             productos_asignados = Producto.objects.none()
             tiene_productos_asignados = False
     
