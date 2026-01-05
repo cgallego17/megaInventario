@@ -34,12 +34,98 @@ def lista_conteos(request):
         for conteo in conteos_num:
             conteo.total_items = conteo.items.count()
             conteo.total_cantidad = conteo.items.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+            
+            # Para conteos en proceso, calcular productos pendientes
+            if conteo.estado == 'en_proceso':
+                # Verificar si el conteo fue creado desde un comparativo
+                productos_ids_conteo = None
+                if conteo.observaciones and 'Productos:' in conteo.observaciones:
+                    try:
+                        productos_str = conteo.observaciones.split('Productos:')[1].strip()
+                        productos_ids_conteo = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+                    except (ValueError, AttributeError):
+                        pass
+                
+                # Obtener productos asignados
+                if productos_ids_conteo:
+                    # Si tiene productos específicos del conteo
+                    productos_asignados = Producto.objects.filter(id__in=productos_ids_conteo)
+                else:
+                    # Obtener productos asignados a las parejas del conteo
+                    parejas_conteo = conteo.parejas.all()
+                    if parejas_conteo.exists():
+                        productos_asignados = Producto.objects.filter(
+                            parejas_asignadas__in=parejas_conteo
+                        ).distinct()
+                    else:
+                        # Si no hay parejas asignadas, no hay productos asignados
+                        productos_asignados = Producto.objects.none()
+                
+                # Obtener productos ya contados en el conteo (por cualquier usuario)
+                productos_contados_ids = set(conteo.items.values_list('producto_id', flat=True))
+                
+                # Si el conteo tiene productos específicos, filtrar solo los items de esos productos
+                if productos_ids_conteo:
+                    productos_contados_ids = productos_contados_ids.intersection(set(productos_ids_conteo))
+                
+                # Calcular productos pendientes
+                if productos_contados_ids:
+                    productos_pendientes = productos_asignados.exclude(id__in=productos_contados_ids)
+                else:
+                    productos_pendientes = productos_asignados
+                
+                conteo.productos_pendientes = productos_pendientes.count()
+            else:
+                conteo.productos_pendientes = None
         conteos_por_numero[num] = conteos_num
     
     # Agregar estadísticas a todos los conteos para la vista general
     for conteo in conteos:
         conteo.total_items = conteo.items.count()
         conteo.total_cantidad = conteo.items.aggregate(Sum('cantidad'))['cantidad__sum'] or 0
+        
+        # Para conteos en proceso, calcular productos pendientes
+        if conteo.estado == 'en_proceso':
+            # Verificar si el conteo fue creado desde un comparativo
+            productos_ids_conteo = None
+            if conteo.observaciones and 'Productos:' in conteo.observaciones:
+                try:
+                    productos_str = conteo.observaciones.split('Productos:')[1].strip()
+                    productos_ids_conteo = [int(pid.strip()) for pid in productos_str.split(',') if pid.strip().isdigit()]
+                except (ValueError, AttributeError):
+                    pass
+            
+            # Obtener productos asignados
+            if productos_ids_conteo:
+                # Si tiene productos específicos del conteo
+                productos_asignados = Producto.objects.filter(id__in=productos_ids_conteo)
+            else:
+                # Obtener productos asignados a las parejas del conteo
+                parejas_conteo = conteo.parejas.all()
+                if parejas_conteo.exists():
+                    productos_asignados = Producto.objects.filter(
+                        parejas_asignadas__in=parejas_conteo
+                    ).distinct()
+                else:
+                    # Si no hay parejas asignadas, no hay productos asignados
+                    productos_asignados = Producto.objects.none()
+            
+            # Obtener productos ya contados en el conteo (por cualquier usuario)
+            productos_contados_ids = set(conteo.items.values_list('producto_id', flat=True))
+            
+            # Si el conteo tiene productos específicos, filtrar solo los items de esos productos
+            if productos_ids_conteo:
+                productos_contados_ids = productos_contados_ids.intersection(set(productos_ids_conteo))
+            
+            # Calcular productos pendientes
+            if productos_contados_ids:
+                productos_pendientes = productos_asignados.exclude(id__in=productos_contados_ids)
+            else:
+                productos_pendientes = productos_asignados
+            
+            conteo.productos_pendientes = productos_pendientes.count()
+        else:
+            conteo.productos_pendientes = None
     
     return render(request, 'conteo/lista_conteos.html', {
         'conteos': conteos,

@@ -236,8 +236,14 @@
                             </div>
                             
                             <div class="conteo-info-row">
-                                <span class="conteo-info-label">Items:</span>
-                                <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                                <span class="conteo-info-label">{% if conteo.estado == 'en_proceso' %}Pendientes:{% else %}Items:{% endif %}</span>
+                                <span class="conteo-info-value">
+                                    {% if conteo.estado == 'en_proceso' and conteo.productos_pendientes is not None %}
+                                        <span class="badge bg-warning">{{ conteo.productos_pendientes }}</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ conteo.total_items }}</span>
+                                    {% endif %}
+                                </span>
                             </div>
                             <div class="conteo-info-row">
                                 <span class="conteo-info-label">Total Cantidad:</span>
@@ -341,7 +347,11 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-info" style="font-size: 0.75rem;">{{ conteo.total_items }}</span>
+                                    {% if conteo.estado == 'en_proceso' and conteo.productos_pendientes is not None %}
+                                        <span class="badge bg-warning" style="font-size: 0.75rem;">{{ conteo.productos_pendientes }}</span>
+                                    {% else %}
+                                        <span class="badge bg-info" style="font-size: 0.75rem;">{{ conteo.total_items }}</span>
+                                    {% endif %}
                                 </td>
                                 <td class="text-end">
                                     <strong>{{ conteo.total_cantidad|intcomma }}</strong>
@@ -415,8 +425,14 @@
                         </div>
                         
                         <div class="conteo-info-row">
-                            <span class="conteo-info-label">Items:</span>
-                            <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                            <span class="conteo-info-label">{% if conteo.estado == 'en_proceso' %}Pendientes:{% else %}Items:{% endif %}</span>
+                            <span class="conteo-info-value">
+                                {% if conteo.estado == 'en_proceso' and conteo.productos_pendientes is not None %}
+                                    <span class="badge bg-warning">{{ conteo.productos_pendientes }}</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ conteo.total_items }}</span>
+                                {% endif %}
+                            </span>
                         </div>
                         <div class="conteo-info-row">
                             <span class="conteo-info-label">Total Cantidad:</span>
@@ -593,8 +609,14 @@
                         </div>
                         
                         <div class="conteo-info-row">
-                            <span class="conteo-info-label">Items:</span>
-                            <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                            <span class="conteo-info-label">{% if conteo.estado == 'en_proceso' %}Pendientes:{% else %}Items:{% endif %}</span>
+                            <span class="conteo-info-value">
+                                {% if conteo.estado == 'en_proceso' and conteo.productos_pendientes is not None %}
+                                    <span class="badge bg-warning">{{ conteo.productos_pendientes }}</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ conteo.total_items }}</span>
+                                {% endif %}
+                            </span>
                         </div>
                         <div class="conteo-info-row">
                             <span class="conteo-info-label">Total Cantidad:</span>
@@ -775,8 +797,14 @@
                         </div>
                         
                         <div class="conteo-info-row">
-                            <span class="conteo-info-label">Items:</span>
-                            <span class="conteo-info-value"><span class="badge bg-info">{{ conteo.total_items }}</span></span>
+                            <span class="conteo-info-label">{% if conteo.estado == 'en_proceso' %}Pendientes:{% else %}Items:{% endif %}</span>
+                            <span class="conteo-info-value">
+                                {% if conteo.estado == 'en_proceso' and conteo.productos_pendientes is not None %}
+                                    <span class="badge bg-warning">{{ conteo.productos_pendientes }}</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ conteo.total_items }}</span>
+                                {% endif %}
+                            </span>
                         </div>
                         <div class="conteo-info-row">
                             <span class="conteo-info-label">Total Cantidad:</span>
