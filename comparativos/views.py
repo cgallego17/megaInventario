@@ -44,19 +44,19 @@ def crear_comparativo(request):
             comparativo.usuario = request.user
             comparativo.save()
             
-            # Automáticamente procesar con todos los conteos finalizados
-            from django.db.models import Sum
-            conteos_finalizados = Conteo.objects.filter(estado='finalizado')
+            # Automáticamente procesar con el último conteo por producto
+            conteos_finalizados = Conteo.objects.filter(estado='finalizado').order_by('-fecha_fin', '-id')
             
             if conteos_finalizados.exists():
-                # Agrupar items por producto y sumar cantidades
-                items_agregados = ItemConteo.objects.filter(
-                    conteo__in=conteos_finalizados
-                ).values('producto').annotate(
-                    cantidad_total=Sum('cantidad')
-                )
+                # Obtener el último conteo por producto (no sumar, solo el más reciente)
+                cantidad_por_producto = {}
                 
-                cantidad_por_producto = {item['producto']: item['cantidad_total'] for item in items_agregados}
+                for conteo in conteos_finalizados:
+                    items = ItemConteo.objects.filter(conteo=conteo).select_related('producto')
+                    for item in items:
+                        # Solo usar el primer conteo encontrado para cada producto (el más reciente)
+                        if item.producto_id not in cantidad_por_producto:
+                            cantidad_por_producto[item.producto_id] = item.cantidad
                 
                 # Obtener todos los productos (activos e inactivos)
                 productos = Producto.objects.all()
@@ -71,7 +71,7 @@ def crear_comparativo(request):
                         item.calcular_diferencias()
                 
                 conteos_usados = conteos_finalizados.count()
-                messages.success(request, f'Comparativo creado y procesado. Se sumaron {conteos_usados} conteo(s) finalizado(s).')
+                messages.success(request, f'Comparativo creado y procesado. Se usó el último conteo de {conteos_usados} conteo(s) finalizado(s).')
             else:
                 messages.warning(request, 'Comparativo creado, pero no hay conteos finalizados para procesar.')
             
@@ -95,23 +95,24 @@ def subir_inventario(request, pk):
     items_sistema1 = comparativo.items.exclude(cantidad_sistema1=0).count() if sistema1_subido else 0
     items_sistema2 = comparativo.items.exclude(cantidad_sistema2=0).count() if sistema2_subido else 0
     
-    # Procesar automáticamente con todos los conteos si no hay items o faltan productos
+    # Procesar automáticamente con el último conteo por producto si no hay items o faltan productos
     productos = Producto.objects.all()
     productos_en_comparativo = set(comparativo.items.values_list('producto_id', flat=True))
     productos_faltantes = [p for p in productos if p.id not in productos_en_comparativo]
     
     if comparativo.items.count() == 0 or productos_faltantes:
-        from django.db.models import Sum
-        conteos_finalizados = Conteo.objects.filter(estado='finalizado')
+        conteos_finalizados = Conteo.objects.filter(estado='finalizado').order_by('-fecha_fin', '-id')
         
         if conteos_finalizados.exists():
-            items_agregados = ItemConteo.objects.filter(
-                conteo__in=conteos_finalizados
-            ).values('producto').annotate(
-                cantidad_total=Sum('cantidad')
-            )
+            # Obtener el último conteo por producto (no sumar, solo el más reciente)
+            cantidad_por_producto = {}
             
-            cantidad_por_producto = {item['producto']: item['cantidad_total'] for item in items_agregados}
+            for conteo in conteos_finalizados:
+                items = ItemConteo.objects.filter(conteo=conteo).select_related('producto')
+                for item in items:
+                    # Solo usar el primer conteo encontrado para cada producto (el más reciente)
+                    if item.producto_id not in cantidad_por_producto:
+                        cantidad_por_producto[item.producto_id] = item.cantidad
             
             # Crear o actualizar items para todos los productos
             with transaction.atomic():
@@ -248,19 +249,17 @@ def subir_inventario(request, pk):
 
 @login_required
 def procesar_comparativo(request, pk):
-    """Procesa el comparativo cargando datos del conteo físico - Prioriza reconteos relacionados con este comparativo"""
+    """Procesa el comparativo cargando datos del conteo físico - Usa el último conteo por producto"""
     comparativo = get_object_or_404(ComparativoInventario, pk=pk)
-    
-    from django.db.models import Sum
     
     # Buscar conteos de reconteo relacionados con este comparativo
     conteos_reconteo = Conteo.objects.filter(
         estado='finalizado',
         observaciones__contains=f'Conteo creado desde comparativo "{comparativo.nombre}"'
-    )
+    ).order_by('-fecha_fin', '-id')
     
-    # Obtener TODOS los conteos finalizados para productos que no están en reconteos
-    conteos_finalizados = Conteo.objects.filter(estado='finalizado')
+    # Obtener TODOS los conteos finalizados ordenados por fecha (más reciente primero)
+    conteos_finalizados = Conteo.objects.filter(estado='finalizado').order_by('-fecha_fin', '-id')
     
     if not conteos_finalizados.exists():
         messages.warning(request, 'No hay conteos finalizados. El comparativo se procesará con cantidad física 0.')
@@ -277,41 +276,34 @@ def procesar_comparativo(request, pk):
                 except (ValueError, AttributeError):
                     pass
     
-    # Agrupar items por producto: reconteos tienen prioridad
+    # Obtener el último conteo por producto (no sumar, solo el más reciente)
     cantidad_por_producto = {}
     
-    if productos_reconteo_ids:
-        # Items de reconteos (solo conteos de reconteo relacionados)
-        items_reconteo = ItemConteo.objects.filter(
-            conteo__in=conteos_reconteo,
-            producto_id__in=productos_reconteo_ids
-        ).values('producto').annotate(
-            cantidad_total=Sum('cantidad')
-        )
-        for item in items_reconteo:
-            cantidad_por_producto[item['producto']] = item['cantidad_total']
-        
-        # Items de productos normales (excluyendo productos de reconteo)
+    # Primero procesar reconteos (tienen prioridad y están ordenados por fecha)
+    if productos_reconteo_ids and conteos_reconteo.exists():
+        for conteo in conteos_reconteo:
+            items_reconteo = ItemConteo.objects.filter(
+                conteo=conteo,
+                producto_id__in=productos_reconteo_ids
+            ).select_related('producto')
+            
+            for item in items_reconteo:
+                # Solo usar el primer conteo encontrado para cada producto (el más reciente)
+                if item.producto_id not in cantidad_por_producto:
+                    cantidad_por_producto[item.producto_id] = item.cantidad
+    
+    # Luego procesar conteos normales (solo para productos que no están en reconteos)
+    for conteo in conteos_finalizados:
         items_normales = ItemConteo.objects.filter(
-            conteo__in=conteos_finalizados
+            conteo=conteo
         ).exclude(
             producto_id__in=productos_reconteo_ids
-        ).values('producto').annotate(
-            cantidad_total=Sum('cantidad')
-        )
-    else:
-        # Si no hay reconteos, usar todos los conteos finalizados
-        items_normales = ItemConteo.objects.filter(
-            conteo__in=conteos_finalizados
-        ).values('producto').annotate(
-            cantidad_total=Sum('cantidad')
-        )
-    
-    # Agregar cantidades de productos normales
-    for item in items_normales:
-        producto_id = item['producto']
-        if producto_id not in cantidad_por_producto:
-            cantidad_por_producto[producto_id] = item['cantidad_total']
+        ).select_related('producto')
+        
+        for item in items_normales:
+            # Solo usar el primer conteo encontrado para cada producto (el más reciente)
+            if item.producto_id not in cantidad_por_producto:
+                cantidad_por_producto[item.producto_id] = item.cantidad
     
     # Obtener todos los productos (activos e inactivos) para asegurar que todos estén en el comparativo
     productos = Producto.objects.all()
@@ -322,16 +314,16 @@ def procesar_comparativo(request, pk):
                 comparativo=comparativo,
                 producto=producto
             )
-            # Asignar la cantidad total sumada de todos los conteos finalizados
+            # Asignar la cantidad del último conteo (no la suma)
             item.cantidad_fisico = cantidad_por_producto.get(producto.id, 0)
             item.calcular_diferencias()
     
     # Mensaje informativo
     conteos_usados = conteos_finalizados.count()
     if conteos_reconteo.exists():
-        mensaje = f'Comparativo procesado exitosamente. Se usaron {conteos_reconteo.count()} reconteo(s) para productos específicos y {conteos_usados} conteo(s) finalizado(s) en total.'
+        mensaje = f'Comparativo procesado exitosamente. Se usó el último conteo de {conteos_reconteo.count()} reconteo(s) para productos específicos y {conteos_usados} conteo(s) finalizado(s) en total.'
     else:
-        mensaje = f'Comparativo procesado exitosamente. Se sumaron {conteos_usados} conteo(s) finalizado(s).'
+        mensaje = f'Comparativo procesado exitosamente. Se usó el último conteo de {conteos_usados} conteo(s) finalizado(s).'
     
     messages.success(request, mensaje)
     return redirect('comparativos:detalle', pk=comparativo.pk)
